@@ -1,5 +1,5 @@
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 
 from .models import Account
 
@@ -57,3 +57,30 @@ class RegistrationForm(BootstrapFormMixin, UserCreationForm):
         if commit:
             account.save()
         return account
+
+
+class LoginForm(BootstrapFormMixin, AuthenticationForm):
+    """Django's login form with TapPark's error messages."""
+
+    error_messages = {
+        "invalid_login": "Invalid username or password.",
+        "inactive": "This account has been deactivated. Please contact the parking administrator.",
+    }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["username"].error_messages["required"] = "Enter your username."
+        self.fields["password"].error_messages["required"] = "Enter your password."
+
+    def clean(self):
+        try:
+            return super().clean()
+        except forms.ValidationError:
+            # Django treats a deactivated account like a wrong password. If the
+            # password is actually correct, say the account is deactivated instead.
+            username = self.cleaned_data.get("username")
+            password = self.cleaned_data.get("password")
+            account = Account.objects.filter(username=username).first()
+            if account and not account.is_active and account.check_password(password):
+                raise forms.ValidationError(self.error_messages["inactive"], code="inactive")
+            raise

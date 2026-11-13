@@ -90,6 +90,12 @@ DATABASES = {
 }
 
 
+# Login and logout
+LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "home"  # changed to "dashboard" once dashboards exist (chunk 6)
+LOGOUT_REDIRECT_URL = "login"
+
+
 # Password validation
 
 AUTH_PASSWORD_VALIDATORS = [

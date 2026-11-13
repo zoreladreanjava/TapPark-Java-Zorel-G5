@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}Log in{% endblock %}
+
+{% block content %}
+<div class="mx-auto" style="max-width: 440px;">
+  <div class="card">
+    <div class="card-body p-4">
+      <h1 class="h3 mb-1">Log in</h1>
+      <p class="text-body-secondary mb-4">For vehicle owners, guards, and administrators.</p>
+
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+          {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+        </div>
+      {% endif %}
+
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {% include "includes/form_field.html" with field=form.username %}
+        {% include "includes/form_field.html" with field=form.password %}
+        {# After login, go back to the page that asked for it (?next=...). #}
+        <input type="hidden" name="next" value="{{ next }}">
+        <button type="submit" class="btn btn-tappark w-100 py-2">Log in</button>
+      </form>
+    </div>
+  </div>
+
+  <a class="card owner-link mt-3" href="{% url 'register' %}">
+    <strong>Vehicle owner?</strong>
+    <span>Create an account &rsaquo;</span>
+  </a>
+</div>
+{% endblock %}

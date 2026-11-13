@@ -1,7 +1,8 @@
 from django.contrib import messages
+from django.contrib.auth.views import LoginView, LogoutView
 from django.shortcuts import redirect, render
 
-from .forms import RegistrationForm
+from .forms import LoginForm, RegistrationForm
 
 
 def home(request):
@@ -20,9 +21,28 @@ def register(request):
         if form.is_valid():
             form.save()
             messages.success(request, "Account created. You can now log in.")
-            # Changed to redirect("login") once the login page exists (chunk 5).
-            return redirect("home")
+            return redirect("login")
     else:
         form = RegistrationForm()
 
     return render(request, "accounts/register.html", {"form": form})
+
+
+class TapParkLoginView(LoginView):
+    """Django's LoginView with our template and form.
+
+    Logged-in users who open /login/ are sent to LOGIN_REDIRECT_URL.
+    """
+
+    template_name = "accounts/login.html"
+    authentication_form = LoginForm
+    redirect_authenticated_user = True
+
+
+class TapParkLogoutView(LogoutView):
+    """Logs the user out (POST only, as Django 5 requires) and shows a message."""
+
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        messages.info(request, "You have been logged out.")
+        return response
