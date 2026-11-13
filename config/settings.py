@@ -74,6 +74,9 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
+# Use our own Account model instead of Django's default User.
+AUTH_USER_MODEL = "accounts.Account"
+
 
 # Database: PostgreSQL on Supabase (Session pooler connection string in .env).
 
