@@ -1,0 +1,9 @@
+{# The user's profile photo, or their initials in a circle if they have no photo. #}
+{% if account.profile_photo %}
+  <img src="{{ account.profile_photo.url }}" alt="Profile photo of {{ account.get_full_name|default:account.username }}"
+       class="avatar{% if small %} avatar-sm{% endif %}">
+{% else %}
+  <span class="avatar avatar-initials{% if small %} avatar-sm{% endif %}" aria-hidden="true">
+    {% if account.first_name or account.last_name %}{{ account.first_name|first|upper }}{{ account.last_name|first|upper }}{% else %}{{ account.username|first|upper }}{% endif %}
+  </span>
+{% endif %}

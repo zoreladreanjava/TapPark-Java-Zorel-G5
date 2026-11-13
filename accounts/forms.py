@@ -1,5 +1,6 @@
 from django import forms
-from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm, UserCreationForm
+from django.core.files.uploadedfile import UploadedFile
 
 from .models import Account
 
@@ -84,3 +85,60 @@ class LoginForm(BootstrapFormMixin, AuthenticationForm):
             if account and not account.is_active and account.check_password(password):
                 raise forms.ValidationError(self.error_messages["inactive"], code="inactive")
             raise
+
+
+MAX_PHOTO_SIZE_MB = 2
+
+
+class ProfileForm(BootstrapFormMixin, forms.ModelForm):
+    """Lets a logged-in user edit their own details. Role and username are not editable."""
+
+    remove_photo = forms.BooleanField(required=False, label="Remove current photo")
+
+    class Meta:
+        model = Account
+        fields = ("first_name", "last_name", "email", "contact_number", "profile_photo")
+        labels = {"contact_number": "Contact number (optional)", "profile_photo": "Profile photo (optional)"}
+        help_texts = {
+            "contact_number": "Digits only, with an optional leading +, e.g. +639171234567.",
+            "profile_photo": f"JPG, PNG, or GIF image, up to {MAX_PHOTO_SIZE_MB} MB.",
+        }
+        # A plain file input. The "remove" option is the separate checkbox above.
+        widgets = {"profile_photo": forms.FileInput(attrs={"accept": "image/*"})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["first_name"].required = True
+        self.fields["last_name"].required = True
+        self.fields["first_name"].error_messages["required"] = "Enter your first name."
+        self.fields["last_name"].error_messages["required"] = "Enter your last name."
+        self.fields["email"].error_messages["required"] = "Enter your email address."
+        self.fields["remove_photo"].widget.attrs["class"] = "form-check-input"
+
+    def clean_email(self):
+        email = self.cleaned_data["email"].strip().lower()
+        # Another account may not use this email, but keeping your own is fine.
+        others = Account.objects.filter(email__iexact=email).exclude(pk=self.instance.pk)
+        if others.exists():
+            raise forms.ValidationError("An account with this email already exists.")
+        return email
+
+    def clean_profile_photo(self):
+        photo = self.cleaned_data.get("profile_photo")
+        # Only check the size of a newly uploaded file. ImageField already checks
+        # that it is a real image.
+        if isinstance(photo, UploadedFile) and photo.size > MAX_PHOTO_SIZE_MB * 1024 * 1024:
+            raise forms.ValidationError(f"The photo must be {MAX_PHOTO_SIZE_MB} MB or smaller.")
+        return photo
+
+    def save(self, commit=True):
+        account = super().save(commit=False)
+        if self.cleaned_data.get("remove_photo") and "profile_photo" not in self.files:
+            account.profile_photo = None
+        if commit:
+            account.save()
+        return account
+
+
+class TapParkPasswordChangeForm(BootstrapFormMixin, PasswordChangeForm):
+    """Django's password change form with Bootstrap styling."""

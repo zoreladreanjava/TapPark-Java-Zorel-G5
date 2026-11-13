@@ -1,10 +1,11 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.views import LoginView, LogoutView
+from django.contrib.auth.views import LoginView, LogoutView, PasswordChangeView
 from django.shortcuts import redirect, render
+from django.urls import reverse_lazy
 
 from .decorators import role_required
-from .forms import LoginForm, RegistrationForm
+from .forms import LoginForm, ProfileForm, RegistrationForm, TapParkPasswordChangeForm
 from .models import Account
 
 
@@ -85,3 +86,42 @@ def guard_dashboard(request):
 @role_required(Account.Role.OWNER)
 def owner_dashboard(request):
     return render(request, "dashboards/owner.html")
+
+
+# Profile
+# These views never take a user ID from the URL. They always use request.user,
+# so a user can only see and change their own profile.
+
+@login_required
+def profile(request):
+    return render(request, "accounts/profile.html")
+
+
+@login_required
+def profile_edit(request):
+    # Edit a fresh copy of the account. If the form has errors, request.user
+    # (shown in the navbar) keeps its saved values instead of the bad input.
+    account = Account.objects.get(pk=request.user.pk)
+
+    if request.method == "POST":
+        form = ProfileForm(request.POST, request.FILES, instance=account)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Your profile has been updated.")
+            return redirect("profile")
+    else:
+        form = ProfileForm(instance=account)
+
+    return render(request, "accounts/profile_edit.html", {"form": form})
+
+
+class TapParkPasswordChangeView(PasswordChangeView):
+    """Django's PasswordChangeView. It keeps the user logged in after the change."""
+
+    template_name = "accounts/password_change.html"
+    form_class = TapParkPasswordChangeForm
+    success_url = reverse_lazy("profile")
+
+    def form_valid(self, form):
+        messages.success(self.request, "Your password has been changed.")
+        return super().form_valid(form)
