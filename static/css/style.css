@@ -128,6 +128,62 @@
   background-color: var(--tp-pale-gold);
 }
 
+/* Dashboard sidebar: pale gold panel, maroon active item (prototype .sidebar) */
+.tp-sidebar {
+  background-color: var(--tp-pale-gold);
+}
+
+.tp-sidebar .nav-link {
+  color: #38342c;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.tp-sidebar a.nav-link:hover {
+  background-color: #eedc9e;
+}
+
+.tp-sidebar .nav-link.active {
+  background-color: var(--tp-ink);
+  color: #fff;
+  font-weight: 600;
+}
+
+.tp-sidebar .nav-link.disabled {
+  color: var(--tp-secondary);
+}
+
+/* "Coming soon" label for features built in later phases */
+.badge.soon {
+  background-color: var(--tp-neutral-fill);
+  color: #38342c;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.placeholder-card {
+  opacity: 0.85;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Guard Entry / Exit cards: green = entry, blue = exit (prototype colours) */
+.direction-card {
+  border-left-width: 6px;
+}
+
+.direction-card.entry {
+  border-left-color: #2f7d4f;
+}
+
+.direction-card.exit {
+  border-left-color: #2f5a9e;
+}
+
 /* Forms: white inputs, red border on fields that have an error */
 .form-control,
 .form-select {

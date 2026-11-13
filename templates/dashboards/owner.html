@@ -1,0 +1,39 @@
+{% extends "dashboards/dashboard_base.html" %}
+
+{% block title %}My dashboard{% endblock %}
+{% block sidebar_title %}Vehicle owner{% endblock %}
+
+{% block sidebar %}
+  <li class="nav-item"><a class="nav-link active" aria-current="page" href="{% url 'owner_dashboard' %}">Home</a></li>
+  <li class="nav-item"><span class="nav-link disabled">Parking Availability <span class="badge soon">Coming soon</span></span></li>
+  <li class="nav-item"><span class="nav-link disabled">My Vehicles <span class="badge soon">Coming soon</span></span></li>
+  <li class="nav-item"><span class="nav-link disabled">My Parking History <span class="badge soon">Coming soon</span></span></li>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="mb-4">
+  <h1 class="h3 mb-1">Hello, {{ user.first_name|default:user.username }}.</h1>
+  <p class="text-body-secondary mb-0">Check where to park before you arrive at the gate.</p>
+</div>
+
+<div class="card hero placeholder-card mb-3"><div class="card-body p-4">
+  <p class="section-label mb-1">Right now</p>
+  <h2 class="h4 card-title">Parking Availability <span class="badge soon">Coming soon</span></h2>
+  <p class="card-text text-body-secondary mb-0">Free slots per area, most free first. Viewing doesn't reserve a slot.</p>
+</div></div>
+
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="card h-100 placeholder-card"><div class="card-body">
+      <h2 class="h5 card-title">My Vehicles <span class="badge soon">Coming soon</span></h2>
+      <p class="card-text text-body-secondary">The vehicles registered under your name.</p>
+    </div></div>
+  </div>
+  <div class="col-md-6">
+    <div class="card h-100 placeholder-card"><div class="card-body">
+      <h2 class="h5 card-title">My Parking History <span class="badge soon">Coming soon</span></h2>
+      <p class="card-text text-body-secondary">Your past entries and exits.</p>
+    </div></div>
+  </div>
+</div>
+{% endblock %}

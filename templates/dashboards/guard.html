@@ -1,0 +1,51 @@
+{% extends "dashboards/dashboard_base.html" %}
+
+{% block title %}Guard dashboard{% endblock %}
+{% block sidebar_title %}Guard{% endblock %}
+
+{% block sidebar %}
+  <li class="nav-item"><a class="nav-link active" aria-current="page" href="{% url 'guard_dashboard' %}">Reader screen</a></li>
+  <li class="nav-item"><span class="nav-link disabled">Vehicle Check-In <span class="badge soon">Coming soon</span></span></li>
+  <li class="nav-item"><span class="nav-link disabled">Vehicle Check-Out <span class="badge soon">Coming soon</span></span></li>
+  <li class="nav-item"><span class="nav-link disabled">Search Vehicle / Owner <span class="badge soon">Coming soon</span></span></li>
+  <li class="nav-item"><span class="nav-link disabled">Correct Record <span class="badge soon">Coming soon</span></span></li>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="mb-4">
+  <h1 class="h3 mb-1">Ready for the next vehicle</h1>
+  <p class="text-body-secondary mb-0">Press Entry or Exit, then ask the owner to tap their campus ID.</p>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-6">
+    <div class="card h-100 direction-card entry placeholder-card"><div class="card-body">
+      <h2 class="h4 card-title">Vehicle Check-In</h2>
+      <p class="card-text mb-2">Vehicle arriving: verify the ID and record the entry.</p>
+      <span class="badge soon">Coming soon</span>
+    </div></div>
+  </div>
+  <div class="col-md-6">
+    <div class="card h-100 direction-card exit placeholder-card"><div class="card-body">
+      <h2 class="h4 card-title">Vehicle Check-Out</h2>
+      <p class="card-text mb-2">Vehicle leaving: confirm the exit and free the slot.</p>
+      <span class="badge soon">Coming soon</span>
+    </div></div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="card h-100 placeholder-card"><div class="card-body">
+      <h2 class="h5 card-title">Search Vehicle / Owner <span class="badge soon">Coming soon</span></h2>
+      <p class="card-text text-body-secondary">For owners without an ID: find them by plate number or name.</p>
+    </div></div>
+  </div>
+  <div class="col-md-6">
+    <div class="card h-100 placeholder-card"><div class="card-body">
+      <h2 class="h5 card-title">Correct Record <span class="badge soon">Coming soon</span></h2>
+      <p class="card-text text-body-secondary">Fix the area or entry time of an earlier entry.</p>
+    </div></div>
+  </div>
+</div>
+{% endblock %}

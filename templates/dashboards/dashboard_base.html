@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% comment %}
+  Shared dashboard layout: a sidebar on the left (each dashboard fills the
+  "sidebar" block) and the page content on the right.
+{% endcomment %}
+
+{% block content %}
+<div class="row g-4">
+  <aside class="col-lg-3">
+    <nav class="tp-sidebar rounded-3 p-3" aria-label="Dashboard navigation">
+      <p class="section-label mb-2">{% block sidebar_title %}Menu{% endblock %}</p>
+      <ul class="nav flex-column gap-1">
+        {% block sidebar %}{% endblock %}
+      </ul>
+    </nav>
+  </aside>
+
+  <div class="col-lg-9">
+    {% block dashboard_content %}{% endblock %}
+  </div>
+</div>
+{% endblock %}

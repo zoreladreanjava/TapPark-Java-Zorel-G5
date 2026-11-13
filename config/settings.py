@@ -92,7 +92,7 @@ DATABASES = {
 
 # Login and logout
 LOGIN_URL = "login"
-LOGIN_REDIRECT_URL = "home"  # changed to "dashboard" once dashboards exist (chunk 6)
+LOGIN_REDIRECT_URL = "dashboard"
 LOGOUT_REDIRECT_URL = "login"
 
 

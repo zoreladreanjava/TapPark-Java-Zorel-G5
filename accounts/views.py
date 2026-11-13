@@ -1,8 +1,11 @@
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, LogoutView
 from django.shortcuts import redirect, render
 
+from .decorators import role_required
 from .forms import LoginForm, RegistrationForm
+from .models import Account
 
 
 def home(request):
@@ -13,8 +16,7 @@ def home(request):
 def register(request):
     """Public registration. Creates a vehicle OWNER account."""
     if request.user.is_authenticated:
-        # Changed to redirect("dashboard") once dashboards exist (chunk 6).
-        return redirect("home")
+        return redirect("dashboard")
 
     if request.method == "POST":
         form = RegistrationForm(request.POST)
@@ -46,3 +48,40 @@ class TapParkLogoutView(LogoutView):
         response = super().post(request, *args, **kwargs)
         messages.info(request, "You have been logged out.")
         return response
+
+
+# Dashboards
+
+@login_required
+def dashboard(request):
+    """Send each user to the dashboard for their role."""
+    if request.user.is_admin_role:
+        return redirect("admin_dashboard")
+    if request.user.is_guard_role:
+        return redirect("guard_dashboard")
+    return redirect("owner_dashboard")
+
+
+@login_required
+@role_required(Account.Role.ADMIN)
+def admin_dashboard(request):
+    accounts = Account.objects.all()
+    context = {
+        "owner_count": accounts.filter(role=Account.Role.OWNER).count(),
+        "guard_count": accounts.filter(role=Account.Role.GUARD).count(),
+        "admin_count": accounts.filter(role=Account.Role.ADMIN).count(),
+        "inactive_count": accounts.filter(is_active=False).count(),
+    }
+    return render(request, "dashboards/admin.html", context)
+
+
+@login_required
+@role_required(Account.Role.GUARD)
+def guard_dashboard(request):
+    return render(request, "dashboards/guard.html")
+
+
+@login_required
+@role_required(Account.Role.OWNER)
+def owner_dashboard(request):
+    return render(request, "dashboards/owner.html")

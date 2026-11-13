@@ -1,0 +1,82 @@
+{% extends "dashboards/dashboard_base.html" %}
+
+{% block title %}Admin dashboard{% endblock %}
+{% block sidebar_title %}Administrator{% endblock %}
+
+{% block sidebar %}
+  <li class="nav-item"><a class="nav-link active" aria-current="page" href="{% url 'admin_dashboard' %}">Overview</a></li>
+  <li class="nav-item"><span class="nav-link disabled">Manage Parking Areas <span class="badge soon">Coming soon</span></span></li>
+  <li class="nav-item"><span class="nav-link disabled">Manage Owners &amp; Vehicles <span class="badge soon">Coming soon</span></span></li>
+  <li class="nav-item"><span class="nav-link disabled">Manage Staff <span class="badge soon">Coming soon</span></span></li>
+  <li class="nav-item"><span class="nav-link disabled">Parking History <span class="badge soon">Coming soon</span></span></li>
+  <li class="nav-item"><span class="nav-link disabled">Reports <span class="badge soon">Coming soon</span></span></li>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="mb-4">
+  <h1 class="h3 mb-1">Overview</h1>
+  <p class="text-body-secondary mb-0">Welcome, {{ user.first_name|default:user.username }}. Here is a summary of TapPark accounts.</p>
+</div>
+
+<p class="section-label">Accounts</p>
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <div class="card h-100"><div class="card-body">
+      <p class="text-body-secondary mb-1">Vehicle owners</p>
+      <p class="stat-value mb-0">{{ owner_count }}</p>
+    </div></div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card h-100"><div class="card-body">
+      <p class="text-body-secondary mb-1">Guards</p>
+      <p class="stat-value mb-0">{{ guard_count }}</p>
+    </div></div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card h-100"><div class="card-body">
+      <p class="text-body-secondary mb-1">Administrators</p>
+      <p class="stat-value mb-0">{{ admin_count }}</p>
+    </div></div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card h-100"><div class="card-body">
+      <p class="text-body-secondary mb-1">Deactivated</p>
+      <p class="stat-value mb-0">{{ inactive_count }}</p>
+    </div></div>
+  </div>
+</div>
+
+<p class="section-label">Management</p>
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="card h-100 placeholder-card"><div class="card-body">
+      <h2 class="h5 card-title">Manage Parking Areas <span class="badge soon">Coming soon</span></h2>
+      <p class="card-text text-body-secondary">Add and edit parking areas and their capacity.</p>
+    </div></div>
+  </div>
+  <div class="col-md-6">
+    <div class="card h-100 placeholder-card"><div class="card-body">
+      <h2 class="h5 card-title">Manage Owners &amp; Vehicles <span class="badge soon">Coming soon</span></h2>
+      <p class="card-text text-body-secondary">Register vehicle owners and link their vehicles.</p>
+    </div></div>
+  </div>
+  <div class="col-md-6">
+    <div class="card h-100 placeholder-card"><div class="card-body">
+      <h2 class="h5 card-title">Manage Staff <span class="badge soon">Coming soon</span></h2>
+      <p class="card-text text-body-secondary">Create guard accounts and activate or deactivate staff.</p>
+    </div></div>
+  </div>
+  <div class="col-md-6">
+    <div class="card h-100 placeholder-card"><div class="card-body">
+      <h2 class="h5 card-title">Parking History <span class="badge soon">Coming soon</span></h2>
+      <p class="card-text text-body-secondary">All recorded entries and exits, with filters.</p>
+    </div></div>
+  </div>
+  <div class="col-md-6">
+    <div class="card h-100 placeholder-card"><div class="card-body">
+      <h2 class="h5 card-title">Reports <span class="badge soon">Coming soon</span></h2>
+      <p class="card-text text-body-secondary">Parking utilization reports per area and date range.</p>
+    </div></div>
+  </div>
+</div>
+{% endblock %}
