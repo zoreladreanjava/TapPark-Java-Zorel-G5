@@ -128,6 +128,18 @@
   background-color: var(--tp-pale-gold);
 }
 
+/* Forms: white inputs, red border on fields that have an error */
+.form-control,
+.form-select {
+  background-color: #fff;
+  border-color: var(--tp-border);
+}
+
+.has-error .form-control,
+.has-error .form-select {
+  border-color: var(--bs-form-invalid-border-color);
+}
+
 .tp-footer {
   color: var(--tp-secondary);
   font-size: 12px;
