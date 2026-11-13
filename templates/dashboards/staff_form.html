@@ -1,0 +1,38 @@
+{% extends "dashboards/dashboard_base.html" %}
+
+{% block title %}New guard account{% endblock %}
+{% block sidebar_title %}Administrator{% endblock %}
+{% block sidebar %}{% include "includes/admin_sidebar.html" with active="staff" %}{% endblock %}
+
+{% block dashboard_content %}
+<div class="card" style="max-width: 600px;">
+  <div class="card-body p-4">
+    <h1 class="h3 mb-1">New guard account</h1>
+    <p class="text-body-secondary mb-4">The account gets the Guard role. Give the guard their username and password.</p>
+
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">
+        {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+      </div>
+    {% endif %}
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <div class="row">
+        <div class="col-sm-6">{% include "includes/form_field.html" with field=form.first_name %}</div>
+        <div class="col-sm-6">{% include "includes/form_field.html" with field=form.last_name %}</div>
+      </div>
+      {% include "includes/form_field.html" with field=form.username %}
+      {% include "includes/form_field.html" with field=form.email %}
+      {% include "includes/form_field.html" with field=form.contact_number %}
+      {% include "includes/form_field.html" with field=form.password1 %}
+      {% include "includes/form_field.html" with field=form.password2 %}
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-tappark flex-grow-1 py-2">Create guard account</button>
+        <a class="btn btn-tappark-neutral py-2" href="{% url 'staff_list' %}">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

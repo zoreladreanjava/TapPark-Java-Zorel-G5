@@ -1,11 +1,19 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, LogoutView, PasswordChangeView
-from django.shortcuts import redirect, render
+from django.db.models import Q
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
+from django.views.decorators.http import require_POST
 
 from .decorators import role_required
-from .forms import LoginForm, ProfileForm, RegistrationForm, TapParkPasswordChangeForm
+from .forms import (
+    GuardCreationForm,
+    LoginForm,
+    ProfileForm,
+    RegistrationForm,
+    TapParkPasswordChangeForm,
+)
 from .models import Account
 
 
@@ -125,3 +133,71 @@ class TapParkPasswordChangeView(PasswordChangeView):
     def form_valid(self, form):
         messages.success(self.request, "Your password has been changed.")
         return super().form_valid(form)
+
+
+# Staff management (admins only)
+
+STAFF_ROLES = [Account.Role.ADMIN, Account.Role.GUARD]
+
+
+@login_required
+@role_required(Account.Role.ADMIN)
+def staff_list(request):
+    """List guard and admin accounts, with search and a role filter."""
+    staff = Account.objects.filter(role__in=STAFF_ROLES).order_by("role", "last_name", "first_name")
+
+    query = request.GET.get("q", "").strip()
+    if query:
+        staff = staff.filter(
+            Q(first_name__icontains=query)
+            | Q(last_name__icontains=query)
+            | Q(username__icontains=query)
+        )
+
+    role = request.GET.get("role", "")
+    if role in STAFF_ROLES:
+        staff = staff.filter(role=role)
+    else:
+        role = ""
+
+    context = {
+        "staff": staff,
+        "query": query,
+        "role": role,
+        "role_choices": [(r.value, r.label) for r in STAFF_ROLES],
+    }
+    return render(request, "dashboards/staff_list.html", context)
+
+
+@login_required
+@role_required(Account.Role.ADMIN)
+def staff_create(request):
+    """Admin creates a GUARD account."""
+    if request.method == "POST":
+        form = GuardCreationForm(request.POST)
+        if form.is_valid():
+            guard = form.save()
+            messages.success(request, f"Guard account \"{guard.username}\" created.")
+            return redirect("staff_list")
+    else:
+        form = GuardCreationForm()
+
+    return render(request, "dashboards/staff_form.html", {"form": form})
+
+
+@login_required
+@role_required(Account.Role.ADMIN)
+@require_POST
+def staff_toggle(request, pk):
+    """Activate or deactivate a staff account. POST only, so a plain link can't do it."""
+    account = get_object_or_404(Account, pk=pk, role__in=STAFF_ROLES)
+
+    if account == request.user:
+        messages.error(request, "You can't deactivate your own account.")
+        return redirect("staff_list")
+
+    account.is_active = not account.is_active
+    account.save(update_fields=["is_active"])
+    status = "activated" if account.is_active else "deactivated"
+    messages.success(request, f"{account.get_full_name() or account.username} has been {status}.")
+    return redirect("staff_list")

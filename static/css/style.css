@@ -161,6 +161,15 @@
   vertical-align: middle;
 }
 
+/* A whole card that works as a link */
+.card-link {
+  text-decoration: none;
+}
+
+.card-link:hover {
+  background-color: var(--tp-pale-gold);
+}
+
 .placeholder-card {
   opacity: 0.85;
 }

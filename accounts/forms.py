@@ -18,6 +18,9 @@ class BootstrapFormMixin:
 class RegistrationForm(BootstrapFormMixin, UserCreationForm):
     """Public sign-up form. Every account made here is a vehicle OWNER."""
 
+    # The role every account made with this form gets. Nobody can choose it.
+    role = Account.Role.OWNER
+
     # Clear messages for empty required fields, shown under each field.
     required_messages = {
         "first_name": "Enter your first name.",
@@ -54,10 +57,25 @@ class RegistrationForm(BootstrapFormMixin, UserCreationForm):
     def save(self, commit=True):
         # UserCreationForm.save() hashes the password with set_password().
         account = super().save(commit=False)
-        account.role = Account.Role.OWNER  # nobody can choose their own role
+        account.role = self.role
         if commit:
             account.save()
         return account
+
+
+class GuardCreationForm(RegistrationForm):
+    """Used by an admin to create a GUARD account. Same checks as registration."""
+
+    role = Account.Role.GUARD
+
+    required_messages = {
+        "first_name": "Enter the guard's first name.",
+        "last_name": "Enter the guard's last name.",
+        "username": "Choose a username for the guard.",
+        "email": "Enter the guard's email address.",
+        "password1": "Enter a password.",
+        "password2": "Enter the same password again.",
+    }
 
 
 class LoginForm(BootstrapFormMixin, AuthenticationForm):
