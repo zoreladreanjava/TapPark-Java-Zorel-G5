@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 
 import dj_database_url
+from django.contrib.messages import constants as message_constants
 from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
@@ -120,3 +121,6 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Make messages.error(...) use Bootstrap's red "alert-danger" style.
+MESSAGE_TAGS = {message_constants.ERROR: "danger"}

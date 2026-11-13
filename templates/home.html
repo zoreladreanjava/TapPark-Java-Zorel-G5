@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+{% url 'login' as login_url %}
+{% url 'register' as register_url %}
+{% url 'dashboard' as dashboard_url %}
+
+<div class="mx-auto" style="max-width: 960px;">
+  <section class="hero rounded-4 p-4 p-md-5 mb-4">
+    <p class="section-label mb-2">CIT-University &bull; Campus parking</p>
+    <h1 class="display-6 fw-semibold mb-3">Know before you park.</h1>
+    <p class="lead text-body-secondary mb-4">
+      Tap your campus ID at the gate. Guards record each vehicle's entry and exit, and every area's
+      free slots update as cars come and go, so you can check where to park before you arrive.
+    </p>
+    {% if user.is_authenticated %}
+      <a href="{{ dashboard_url }}" class="btn btn-tappark btn-lg">Go to my dashboard</a>
+    {% else %}
+      <a href="{{ register_url }}" class="btn btn-tappark btn-lg me-2 mb-2 mb-sm-0">Register as vehicle owner</a>
+      <a href="{{ login_url }}" class="btn btn-tappark-neutral btn-lg mb-2 mb-sm-0">Log in</a>
+    {% endif %}
+  </section>
+
+  {% if not user.is_authenticated %}
+    <a class="card owner-link mb-4" href="{{ login_url }}">
+      <strong>Vehicle owner?</strong>
+      <span>Log in to check parking availability &rsaquo;</span>
+    </a>
+  {% endif %}
+
+  <p class="section-label">Who uses TapPark</p>
+  <div class="row g-3">
+    <div class="col-md-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <h2 class="h5 card-title">Vehicle owners</h2>
+          <p class="card-text text-body-secondary">Students and employees check free slots per area and view their own parking history.</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <h2 class="h5 card-title">Guards</h2>
+          <p class="card-text text-body-secondary">Verify the campus ID tap, record each vehicle's entry and exit, and correct a record when needed.</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <h2 class="h5 card-title">Administrators</h2>
+          <p class="card-text text-body-secondary">Manage parking areas, owners, vehicles, and staff, and generate history and utilization reports.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

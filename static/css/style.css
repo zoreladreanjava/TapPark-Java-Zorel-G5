@@ -1,1 +1,135 @@
-/* TapPark custom styles (on top of Bootstrap 5) */
+/*
+  TapPark custom styles, loaded after Bootstrap 5.
+  Colours come from the team's prototype (css/styles.css in the prototype repo):
+  cream canvas, warm white cards, maroon ink, gold header, pale gold accents.
+*/
+
+:root {
+  --tp-canvas: #fff8e7;
+  --tp-surface: #fffef8;
+  --tp-gold: #f2c230;
+  --tp-pale-gold: #f8e9b6;
+  --tp-neutral-fill: #f0d480;
+  --tp-ink: #681f2b;
+  --tp-secondary: #6c604d;
+  --tp-border: #d8c393;
+  --tp-shadow: 0 4px 16px rgb(0 0 0 / 8%);
+
+  /* Point Bootstrap's own variables at the TapPark colours. */
+  --bs-body-bg: var(--tp-canvas);
+  --bs-body-color: var(--tp-ink);
+  --bs-body-font-family: Inter, Arial, Helvetica, sans-serif;
+  --bs-border-color: var(--tp-border);
+  --bs-link-color: var(--tp-ink);
+  --bs-link-color-rgb: 104, 31, 43;
+  --bs-link-hover-color: #4d1620;
+  --bs-link-hover-color-rgb: 77, 22, 32;
+  --bs-secondary-color: var(--tp-secondary);
+}
+
+/* Header: gold bar with a maroon rule, like the prototype's topbar */
+.tp-header {
+  background-color: var(--tp-gold);
+  border-bottom: 2px solid var(--tp-ink);
+}
+
+.tp-header .navbar-brand {
+  color: var(--tp-ink);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.tp-header .campus {
+  color: var(--tp-secondary);
+  font-size: 14px;
+}
+
+.tp-header .nav-link {
+  color: #38342c;
+  font-weight: 500;
+}
+
+.tp-header .nav-link:hover,
+.tp-header .nav-link:focus {
+  color: var(--tp-ink);
+}
+
+/* Role shown next to the user's name, styled like the prototype's chip */
+.role-badge {
+  background-color: var(--tp-surface);
+  border: 1px solid var(--tp-ink);
+  color: var(--tp-ink);
+  font-weight: 600;
+  border-radius: 999px;
+}
+
+/* Cards: warm white with a gold border and soft shadow */
+.card {
+  --bs-card-bg: var(--tp-surface);
+  --bs-card-border-color: var(--tp-border);
+  --bs-card-border-radius: 12px;
+  box-shadow: var(--tp-shadow);
+}
+
+/* Main button (maroon) and neutral button (gold), as in the prototype */
+.btn-tappark {
+  --bs-btn-bg: var(--tp-ink);
+  --bs-btn-border-color: var(--tp-ink);
+  --bs-btn-color: #fff;
+  --bs-btn-hover-bg: #4d1620;
+  --bs-btn-hover-border-color: #4d1620;
+  --bs-btn-hover-color: #fff;
+  --bs-btn-active-bg: #4d1620;
+  --bs-btn-active-border-color: #4d1620;
+  --bs-btn-active-color: #fff;
+}
+
+.btn-tappark-neutral {
+  --bs-btn-bg: var(--tp-neutral-fill);
+  --bs-btn-border-color: #9c8d63;
+  --bs-btn-color: #38342c;
+  --bs-btn-hover-bg: #e8c967;
+  --bs-btn-hover-border-color: #9c8d63;
+  --bs-btn-hover-color: #38342c;
+  --bs-btn-active-bg: #e8c967;
+  --bs-btn-active-border-color: #9c8d63;
+  --bs-btn-active-color: #38342c;
+}
+
+.text-tappark {
+  color: var(--tp-ink);
+}
+
+/* Landing page */
+.hero {
+  background-color: var(--tp-surface);
+  border: 1px solid var(--tp-border);
+  border-left: 6px solid var(--tp-gold);
+}
+
+.section-label {
+  color: var(--tp-secondary);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* "Vehicle owner?" link card from the prototype's sign-in page */
+.owner-link {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  text-decoration: none;
+}
+
+.owner-link:hover {
+  background-color: var(--tp-pale-gold);
+}
+
+.tp-footer {
+  color: var(--tp-secondary);
+  font-size: 12px;
+  border-top: 1px solid var(--tp-border);
+}
