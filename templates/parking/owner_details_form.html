@@ -1,0 +1,24 @@
+{% extends "dashboards/dashboard_base.html" %}
+
+{% block title %}Owner details{% endblock %}
+{% block sidebar_title %}Vehicle owner{% endblock %}
+{% block sidebar %}{% include "includes/owner_sidebar.html" with active="vehicles" %}{% endblock %}
+
+{% block dashboard_content %}
+<div class="card" style="max-width: 560px;">
+  <div class="card-body p-4">
+    <h1 class="h3 mb-1">{% if owner %}Edit owner details{% else %}Add your campus ID number{% endif %}</h1>
+    <p class="text-body-secondary mb-4">Each ID number can belong to only one owner.</p>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% include "includes/form_field.html" with field=form.id_number %}
+      {% include "includes/form_field.html" with field=form.owner_type %}
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-tappark flex-grow-1 py-2">Save details</button>
+        <a class="btn btn-tappark-neutral py-2" href="{% url 'my_vehicles' %}">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

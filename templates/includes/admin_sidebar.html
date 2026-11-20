@@ -5,7 +5,9 @@
 <li class="nav-item">
   <a class="nav-link{% if active == 'areas' %} active" aria-current="page{% endif %}" href="{% url 'area_list' %}">Manage Parking Areas</a>
 </li>
-<li class="nav-item"><span class="nav-link disabled">Manage Owners &amp; Vehicles <span class="badge soon">Coming soon</span></span></li>
+<li class="nav-item">
+  <a class="nav-link{% if active == 'vehicles' %} active" aria-current="page{% endif %}" href="{% url 'admin_vehicle_list' %}">Owners &amp; Vehicles</a>
+</li>
 <li class="nav-item">
   <a class="nav-link{% if active == 'staff' %} active" aria-current="page{% endif %}" href="{% url 'staff_list' %}">Manage Staff</a>
 </li>

@@ -1,0 +1,9 @@
+{# Vehicle owner menu. Pass active="home" or "vehicles" to highlight a link. #}
+<li class="nav-item">
+  <a class="nav-link{% if active == 'home' %} active" aria-current="page{% endif %}" href="{% url 'owner_dashboard' %}">Home</a>
+</li>
+<li class="nav-item"><span class="nav-link disabled">Parking Availability <span class="badge soon">Coming soon</span></span></li>
+<li class="nav-item">
+  <a class="nav-link{% if active == 'vehicles' %} active" aria-current="page{% endif %}" href="{% url 'my_vehicles' %}">My Vehicles</a>
+</li>
+<li class="nav-item"><span class="nav-link disabled">My Parking History <span class="badge soon">Coming soon</span></span></li>

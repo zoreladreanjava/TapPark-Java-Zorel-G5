@@ -2,7 +2,7 @@ from django import forms
 
 from accounts.forms import BootstrapFormMixin
 
-from .models import ParkingArea
+from .models import ParkingArea, Vehicle, VehicleOwner
 
 
 class ParkingAreaForm(BootstrapFormMixin, forms.ModelForm):
@@ -27,3 +27,41 @@ class ParkingAreaForm(BootstrapFormMixin, forms.ModelForm):
         if others.exists():
             raise forms.ValidationError("A parking area with this name already exists.")
         return name
+
+
+class VehicleOwnerForm(BootstrapFormMixin, forms.ModelForm):
+    """The owner's campus ID number and owner type."""
+
+    class Meta:
+        model = VehicleOwner
+        fields = ("id_number", "owner_type")
+        labels = {"id_number": "Campus ID number", "owner_type": "I am a"}
+        help_texts = {"id_number": "The number on your campus ID. Guards use it to find your vehicles at the gate."}
+        error_messages = {
+            "id_number": {
+                "required": "Enter your campus ID number.",
+                "unique": "This ID number is already registered to another owner.",
+            },
+        }
+
+    def clean_id_number(self):
+        return self.cleaned_data["id_number"].strip().upper()
+
+
+class VehicleForm(BootstrapFormMixin, forms.ModelForm):
+    class Meta:
+        model = Vehicle
+        fields = ("plate_number", "vehicle_type", "description")
+        labels = {"description": "Description (optional)"}
+        error_messages = {
+            "plate_number": {"required": "Enter the plate number."},
+            "vehicle_type": {"required": "Choose the vehicle type."},
+        }
+
+    def clean_plate_number(self):
+        # Store plates in capitals with single spaces, so "abc  1234" becomes "ABC 1234".
+        plate = " ".join(self.cleaned_data["plate_number"].upper().split())
+        others = Vehicle.objects.filter(plate_number__iexact=plate).exclude(pk=self.instance.pk)
+        if others.exists():
+            raise forms.ValidationError("This plate number is already registered.")
+        return plate
