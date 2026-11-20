@@ -1,0 +1,26 @@
+{% extends "dashboards/dashboard_base.html" %}
+
+{% block title %}Correct entry{% endblock %}
+{% block sidebar_title %}{% if user.is_admin_role %}Administrator{% else %}Guard{% endif %}{% endblock %}
+{% block sidebar %}
+  {% if user.is_admin_role %}{% include "includes/admin_sidebar.html" with active="history" %}{% else %}{% include "includes/guard_sidebar.html" %}{% endif %}
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="card" style="max-width: 560px;">
+  <div class="card-body p-4">
+    <h1 class="h3 mb-1">Correct entry: <span class="num">{{ entry.vehicle.plate_number }}</span></h1>
+    <p class="text-body-secondary mb-4">Fix the area or the entry time if they were recorded wrong.</p>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% include "includes/form_field.html" with field=form.area %}
+      {% include "includes/form_field.html" with field=form.entry_time %}
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-tappark flex-grow-1 py-2">Save correction</button>
+        <a class="btn btn-tappark-neutral py-2" href="{% if user.is_admin_role %}{% url 'admin_history' %}{% else %}{% url 'guard_dashboard' %}{% endif %}">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

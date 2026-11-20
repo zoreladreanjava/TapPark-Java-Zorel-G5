@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import ParkingArea, Vehicle, VehicleOwner
+from .models import EntryLog, ExitLog, ParkingArea, Vehicle, VehicleOwner
 
 
 @admin.register(ParkingArea)
@@ -20,3 +20,14 @@ class VehicleAdmin(admin.ModelAdmin):
     list_display = ("plate_number", "vehicle_type", "owner")
     list_filter = ("vehicle_type",)
     search_fields = ("plate_number",)
+
+
+@admin.register(EntryLog)
+class EntryLogAdmin(admin.ModelAdmin):
+    list_display = ("vehicle", "area", "entry_time", "status", "recorded_by")
+    list_filter = ("status", "area")
+
+
+@admin.register(ExitLog)
+class ExitLogAdmin(admin.ModelAdmin):
+    list_display = ("entry", "exit_time", "recorded_by")

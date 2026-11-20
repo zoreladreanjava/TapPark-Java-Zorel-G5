@@ -1,0 +1,25 @@
+{% extends "dashboards/dashboard_base.html" %}
+
+{% block title %}Parking availability{% endblock %}
+{% block sidebar_title %}Vehicle owner{% endblock %}
+{% block sidebar %}{% include "includes/owner_sidebar.html" with active="availability" %}{% endblock %}
+
+{% block dashboard_content %}
+<div class="card hero mb-3"><div class="card-body p-4">
+  <p class="section-label mb-1">Right now</p>
+  {% if total_free > 0 %}
+    <h1 class="h3 mb-1">Parking available</h1>
+    <p class="mb-0"><strong class="num">{{ total_free }}</strong> free slot{{ total_free|pluralize }} across campus.</p>
+  {% else %}
+    <h1 class="h3 mb-1">No parking available</h1>
+    <p class="mb-0">Every area is full right now. Check again in a few minutes.</p>
+  {% endif %}
+</div></div>
+
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <p class="section-label mb-0">Areas, most free first</p>
+  <a class="btn btn-sm btn-tappark-neutral" href="{% url 'owner_availability' %}">Refresh</a>
+</div>
+{% include "includes/area_tiles.html" %}
+<p class="small text-body-secondary mt-3">Viewing doesn't reserve a slot. Tell the guard which area you choose at the gate.</p>
+{% endblock %}

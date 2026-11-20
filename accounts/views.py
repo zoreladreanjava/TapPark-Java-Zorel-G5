@@ -14,6 +14,9 @@ from .forms import (
     RegistrationForm,
     TapParkPasswordChangeForm,
 )
+from parking.models import EntryLog
+from parking.views import gate_context, parking_summary
+
 from .models import Account
 
 
@@ -80,6 +83,7 @@ def admin_dashboard(request):
         "guard_count": accounts.filter(role=Account.Role.GUARD).count(),
         "admin_count": accounts.filter(role=Account.Role.ADMIN).count(),
         "inactive_count": accounts.filter(is_active=False).count(),
+        **parking_summary(),
     }
     return render(request, "dashboards/admin.html", context)
 
@@ -87,13 +91,18 @@ def admin_dashboard(request):
 @login_required
 @role_required(Account.Role.GUARD)
 def guard_dashboard(request):
-    return render(request, "dashboards/guard.html")
+    """The guard's dashboard is the gate screen: search, check in, check out."""
+    return render(request, "dashboards/guard.html", gate_context(request))
 
 
 @login_required
 @role_required(Account.Role.OWNER)
 def owner_dashboard(request):
-    return render(request, "dashboards/owner.html")
+    context = parking_summary()
+    context["my_active_entries"] = EntryLog.objects.filter(
+        vehicle__owner__account=request.user, status=EntryLog.Status.ACTIVE
+    ).select_related("vehicle", "area")
+    return render(request, "dashboards/owner.html", context)
 
 
 # Profile
