@@ -1,0 +1,30 @@
+{% extends "dashboards/dashboard_base.html" %}
+
+{% block title %}{% if is_new %}Add parking area{% else %}Edit {{ area.name }}{% endif %}{% endblock %}
+{% block sidebar_title %}Administrator{% endblock %}
+{% block sidebar %}{% include "includes/admin_sidebar.html" with active="areas" %}{% endblock %}
+
+{% block dashboard_content %}
+<div class="card" style="max-width: 560px;">
+  <div class="card-body p-4">
+    <h1 class="h3 mb-1">{% if is_new %}Add parking area{% else %}Edit {{ area.name }}{% endif %}</h1>
+    <p class="text-body-secondary mb-4">Area names must be unique.</p>
+
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">
+        {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+      </div>
+    {% endif %}
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% include "includes/form_field.html" with field=form.name %}
+      {% include "includes/form_field.html" with field=form.capacity %}
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-tappark flex-grow-1 py-2">{% if is_new %}Add area{% else %}Save changes{% endif %}</button>
+        <a class="btn btn-tappark-neutral py-2" href="{% url 'area_list' %}">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
