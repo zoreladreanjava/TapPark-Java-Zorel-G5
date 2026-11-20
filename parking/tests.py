@@ -1,9 +1,12 @@
+from datetime import timedelta
+
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from accounts.models import Account
 
-from .models import ParkingArea, Vehicle, VehicleOwner
+from .models import EntryLog, ParkingArea, Vehicle, VehicleOwner
 
 PASSWORD = "Parking-Slot-42"
 
@@ -168,3 +171,158 @@ class MyVehiclesTests(TestCase):
                 self.assertEqual(self.client.get(reverse(name)).status_code, 403)
         self.client.force_login(self.owner)
         self.assertEqual(self.client.get(reverse("admin_vehicle_list")).status_code, 403)
+
+
+class EntryExitTests(TestCase):
+    def setUp(self):
+        self.admin = make_user("admin1", Account.Role.ADMIN)
+        self.guard = make_user("guard1", Account.Role.GUARD)
+        self.guard2 = make_user("guard2", Account.Role.GUARD)
+        self.owner = make_user("owner1", Account.Role.OWNER)
+        self.other = make_user("owner2", Account.Role.OWNER)
+        self.area_a = ParkingArea.objects.create(name="Area A", capacity=2, created_by=self.admin)
+        self.area_b = ParkingArea.objects.create(name="Area B", capacity=1, created_by=self.admin)
+        details = VehicleOwner.objects.create(account=self.owner, id_number="23-1111-111")
+        other_details = VehicleOwner.objects.create(account=self.other, id_number="23-2222-222")
+        self.car = Vehicle.objects.create(owner=details, plate_number="ABC 1234", vehicle_type="CAR")
+        self.other_car = Vehicle.objects.create(owner=other_details, plate_number="XYZ 999", vehicle_type="CAR")
+
+    def check_in(self, vehicle, area, user=None):
+        self.client.force_login(user or self.guard)
+        return self.client.post(reverse("check_in", args=[vehicle.pk]), {"area": area.pk}, follow=True)
+
+    def test_guard_finds_vehicle_by_id_number_or_plate(self):
+        self.client.force_login(self.guard)
+        self.assertContains(self.client.get(reverse("guard_dashboard"), {"q": "23-1111-111"}), "ABC 1234")
+        self.assertContains(self.client.get(reverse("guard_dashboard"), {"q": "abc 1234"}), "ABC 1234")
+        self.assertContains(self.client.get(reverse("guard_dashboard"), {"q": "nobody"}), "No registered vehicle matches")
+
+    def test_check_in_creates_entry_linked_to_guard_and_uses_a_slot(self):
+        response = self.check_in(self.car, self.area_a)
+        entry = EntryLog.objects.get(vehicle=self.car)
+        self.assertEqual(entry.recorded_by, self.guard)
+        self.assertEqual(entry.status, EntryLog.Status.ACTIVE)
+        self.assertContains(response, "Entry recorded: ABC 1234 parked in Area A.")
+        self.assertEqual(self.area_a.free_slots(), 1)
+
+    def test_check_in_rules(self):
+        self.client.force_login(self.guard)
+        response = self.client.post(reverse("check_in", args=[self.car.pk]), {"area": ""}, follow=True)
+        self.assertContains(response, "Choose a parking area.")
+        self.check_in(self.car, self.area_b)
+        response = self.check_in(self.car, self.area_a)
+        self.assertContains(response, "ABC 1234 is already recorded inside. Check it out first.")
+        response = self.check_in(self.other_car, self.area_b)
+        self.assertContains(response, "Area B is full. Ask the owner to choose another area.")
+        self.assertEqual(EntryLog.objects.count(), 1)
+
+    def test_check_out_closes_entry_and_frees_slot(self):
+        self.check_in(self.car, self.area_b)
+        entry = EntryLog.objects.get(vehicle=self.car)
+        response = self.client.post(reverse("check_out", args=[entry.pk]), follow=True)
+        entry.refresh_from_db()
+        self.assertEqual(entry.status, EntryLog.Status.CLOSED)
+        self.assertEqual(entry.exit.recorded_by, self.guard)
+        self.assertContains(response, "Exit recorded: ABC 1234 left Area B.")
+        self.assertEqual(self.area_b.free_slots(), 1)
+        # Checking out again is not possible.
+        self.assertEqual(self.client.post(reverse("check_out", args=[entry.pk])).status_code, 404)
+
+    def test_check_in_and_out_are_post_only_and_guard_only(self):
+        self.client.force_login(self.guard)
+        self.assertEqual(self.client.get(reverse("check_in", args=[self.car.pk])).status_code, 405)
+        for user in (self.owner, self.admin):
+            self.client.force_login(user)
+            response = self.client.post(reverse("check_in", args=[self.car.pk]), {"area": self.area_a.pk})
+            self.assertEqual(response.status_code, 403)
+        self.assertFalse(EntryLog.objects.exists())
+
+    def test_guard_corrects_own_entry(self):
+        self.check_in(self.car, self.area_a)
+        entry = EntryLog.objects.get(vehicle=self.car)
+        new_time = (entry.entry_time - timedelta(minutes=30)).astimezone().strftime("%Y-%m-%dT%H:%M")
+        response = self.client.post(reverse("entry_edit", args=[entry.pk]),
+                                    {"area": self.area_b.pk, "entry_time": new_time}, follow=True)
+        entry.refresh_from_db()
+        self.assertEqual(entry.area, self.area_b)
+        self.assertContains(response, "Entry for ABC 1234 corrected.")
+
+    def test_correction_rules(self):
+        self.check_in(self.other_car, self.area_b)  # Area B is now full
+        self.check_in(self.car, self.area_a)
+        entry = EntryLog.objects.get(vehicle=self.car)
+        future = (timezone.now() + timedelta(days=1)).astimezone().strftime("%Y-%m-%dT%H:%M")
+        response = self.client.post(reverse("entry_edit", args=[entry.pk]),
+                                    {"area": self.area_a.pk, "entry_time": future})
+        self.assertFormError(response.context["form"], "entry_time", "The entry time can't be in the future.")
+        now = timezone.now().astimezone().strftime("%Y-%m-%dT%H:%M")
+        response = self.client.post(reverse("entry_edit", args=[entry.pk]), {"area": self.area_b.pk, "entry_time": now})
+        self.assertFormError(response.context["form"], "area", "Area B is full. Choose another area.")
+
+    def test_guard_cannot_change_another_guards_entry_but_admin_can(self):
+        self.check_in(self.car, self.area_a, user=self.guard2)
+        entry = EntryLog.objects.get(vehicle=self.car)
+        self.client.force_login(self.guard)
+        self.assertEqual(self.client.get(reverse("entry_edit", args=[entry.pk])).status_code, 403)
+        self.assertEqual(self.client.post(reverse("entry_delete", args=[entry.pk])).status_code, 403)
+        self.client.force_login(self.admin)
+        response = self.client.post(reverse("entry_delete", args=[entry.pk]), follow=True)
+        self.assertContains(response, "Entry for ABC 1234 undone.")
+        self.assertFalse(EntryLog.objects.exists())
+
+    def test_closed_entries_cannot_be_changed(self):
+        self.check_in(self.car, self.area_a)
+        entry = EntryLog.objects.get(vehicle=self.car)
+        self.client.post(reverse("check_out", args=[entry.pk]))
+        self.assertEqual(self.client.get(reverse("entry_edit", args=[entry.pk])).status_code, 403)
+
+    def test_owner_sees_availability_and_only_own_history(self):
+        self.check_in(self.car, self.area_a)
+        self.check_in(self.other_car, self.area_b)
+        self.client.force_login(self.owner)
+        response = self.client.get(reverse("owner_availability"))
+        self.assertEqual(response.context["total_free"], 1)
+        history = self.client.get(reverse("owner_history"))
+        self.assertContains(history, "ABC 1234")
+        self.assertNotContains(history, "XYZ 999")
+        self.assertContains(self.client.get(reverse("owner_dashboard")), "is parked in")
+
+    def test_admin_history_lists_and_filters_all_records(self):
+        self.check_in(self.car, self.area_a)
+        self.check_in(self.other_car, self.area_b)
+        entry = EntryLog.objects.get(vehicle=self.car)
+        self.client.post(reverse("check_out", args=[entry.pk]))
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("admin_history"))
+        self.assertContains(response, "ABC 1234")
+        self.assertContains(response, "XYZ 999")
+        inside = self.client.get(reverse("admin_history"), {"status": "ACTIVE"})
+        self.assertNotContains(inside, "ABC 1234")
+        self.assertContains(inside, "XYZ 999")
+
+    def test_area_and_vehicle_removal_and_capacity_rules(self):
+        self.check_in(self.car, self.area_a)
+        self.check_in(self.other_car, self.area_a)
+        self.client.force_login(self.admin)
+        response = self.client.post(reverse("area_edit", args=[self.area_a.pk]), {"name": "Area A", "capacity": 1})
+        self.assertFormError(response.context["form"], "capacity", "Capacity can't be lower than the 2 vehicles parked here now.")
+        self.assertContains(self.client.get(reverse("area_delete", args=[self.area_a.pk])),
+                            "Area A can&#x27;t be removed while vehicles are parked in it.")
+        self.client.post(reverse("area_delete", args=[self.area_a.pk]))
+        self.assertTrue(ParkingArea.objects.filter(pk=self.area_a.pk).exists())
+        self.client.force_login(self.owner)
+        self.client.post(reverse("vehicle_delete", args=[self.car.pk]))
+        self.assertTrue(Vehicle.objects.filter(pk=self.car.pk).exists())
+
+    def test_role_access_to_core_feature_pages(self):
+        pages = {
+            "owner_availability": [self.owner],
+            "owner_history": [self.owner],
+            "admin_history": [self.admin],
+        }
+        for name, allowed in pages.items():
+            for user in (self.admin, self.guard, self.owner):
+                with self.subTest(page=name, user=user.username):
+                    self.client.force_login(user)
+                    expected = 200 if user in allowed else 403
+                    self.assertEqual(self.client.get(reverse(name)).status_code, expected)

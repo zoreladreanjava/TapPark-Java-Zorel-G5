@@ -20,6 +20,8 @@
         <tr>
           <th scope="col">Area</th>
           <th scope="col" class="text-end">Capacity</th>
+          <th scope="col" class="text-end">Parked</th>
+          <th scope="col" class="text-end">Free</th>
           <th scope="col">Added by</th>
           <th scope="col">Last updated</th>
           <th scope="col" class="text-end">Actions</th>
@@ -30,6 +32,8 @@
           <tr>
             <th scope="row">{{ area.name }}</th>
             <td class="text-end num">{{ area.capacity }}</td>
+            <td class="text-end num">{{ area.parked }}</td>
+            <td class="text-end num">{% if area.free <= 0 %}<span class="badge status-full">Full</span>{% else %}{{ area.free }}{% endif %}</td>
             <td>{{ area.created_by.get_full_name|default:area.created_by.username }}</td>
             <td>{{ area.updated_at|date:"M j, Y g:i A" }}</td>
             <td class="text-end text-nowrap">
@@ -39,7 +43,7 @@
           </tr>
         {% empty %}
           <tr>
-            <td colspan="5" class="text-center text-body-secondary py-4">No parking areas yet. Add the first one.</td>
+            <td colspan="7" class="text-center text-body-secondary py-4">No parking areas yet. Add the first one.</td>
           </tr>
         {% endfor %}
       </tbody>

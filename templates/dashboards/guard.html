@@ -1,51 +1,117 @@
 {% extends "dashboards/dashboard_base.html" %}
 
-{% block title %}Guard dashboard{% endblock %}
+{% block title %}Gate screen{% endblock %}
 {% block sidebar_title %}Guard{% endblock %}
-
-{% block sidebar %}
-  <li class="nav-item"><a class="nav-link active" aria-current="page" href="{% url 'guard_dashboard' %}">Reader screen</a></li>
-  <li class="nav-item"><span class="nav-link disabled">Vehicle Check-In <span class="badge soon">Coming soon</span></span></li>
-  <li class="nav-item"><span class="nav-link disabled">Vehicle Check-Out <span class="badge soon">Coming soon</span></span></li>
-  <li class="nav-item"><span class="nav-link disabled">Search Vehicle / Owner <span class="badge soon">Coming soon</span></span></li>
-  <li class="nav-item"><span class="nav-link disabled">Correct Record <span class="badge soon">Coming soon</span></span></li>
-{% endblock %}
+{% block sidebar %}{% include "includes/guard_sidebar.html" with active="gate" %}{% endblock %}
 
 {% block dashboard_content %}
-<div class="mb-4">
+<div class="mb-3">
   <h1 class="h3 mb-1">Ready for the next vehicle</h1>
-  <p class="text-body-secondary mb-0">Press Entry or Exit, then ask the owner to tap their campus ID.</p>
+  <p class="text-body-secondary mb-0">
+    Type the owner's campus ID number or the plate number. <strong class="num">{{ total_free }}</strong> of {{ total_capacity }} slots free.
+  </p>
 </div>
 
-<div class="row g-3 mb-3">
-  <div class="col-md-6">
-    <div class="card h-100 direction-card entry placeholder-card"><div class="card-body">
-      <h2 class="h4 card-title">Vehicle Check-In</h2>
-      <p class="card-text mb-2">Vehicle arriving: verify the ID and record the entry.</p>
-      <span class="badge soon">Coming soon</span>
-    </div></div>
-  </div>
-  <div class="col-md-6">
-    <div class="card h-100 direction-card exit placeholder-card"><div class="card-body">
-      <h2 class="h4 card-title">Vehicle Check-Out</h2>
-      <p class="card-text mb-2">Vehicle leaving: confirm the exit and free the slot.</p>
-      <span class="badge soon">Coming soon</span>
-    </div></div>
-  </div>
-</div>
+<form method="get" class="card mb-3" id="search"><div class="card-body d-flex flex-wrap gap-2">
+  <label for="q" class="visually-hidden">Campus ID number or plate number</label>
+  <input type="search" id="q" name="q" value="{{ query }}" class="form-control form-control-lg flex-grow-1"
+         style="max-width: 32rem;" placeholder="Campus ID number or plate, e.g. 23-1234-567 or ABC 1234" autofocus>
+  <button type="submit" class="btn btn-tappark btn-lg">Find vehicle</button>
+  {% if query %}<a class="btn btn-tappark-neutral btn-lg" href="{% url 'guard_dashboard' %}">Clear</a>{% endif %}
+</div></form>
 
-<div class="row g-3">
-  <div class="col-md-6">
-    <div class="card h-100 placeholder-card"><div class="card-body">
-      <h2 class="h5 card-title">Search Vehicle / Owner <span class="badge soon">Coming soon</span></h2>
-      <p class="card-text text-body-secondary">For owners without an ID: find them by plate number or name.</p>
-    </div></div>
-  </div>
-  <div class="col-md-6">
-    <div class="card h-100 placeholder-card"><div class="card-body">
-      <h2 class="h5 card-title">Correct Record <span class="badge soon">Coming soon</span></h2>
-      <p class="card-text text-body-secondary">Fix the area or entry time of an earlier entry.</p>
-    </div></div>
+{% if results is not None %}
+  <section class="mb-4" aria-label="Search results">
+    {% for vehicle, active_entry in results %}
+      <div class="card mb-2 direction-card {% if active_entry %}exit{% else %}entry{% endif %}"><div class="card-body">
+        <div class="d-flex flex-wrap justify-content-between gap-3 align-items-center">
+          <div>
+            <h2 class="h5 mb-1 num">{{ vehicle.plate_number }} <span class="text-body-secondary fs-6">{{ vehicle.get_vehicle_type_display }}</span></h2>
+            <p class="mb-0">
+              {{ vehicle.owner.account.get_full_name|default:vehicle.owner.account.username }}
+              &middot; ID <span class="num">{{ vehicle.owner.id_number }}</span>
+              &middot;
+              {% if active_entry %}
+                <span class="badge status-inside">Inside</span> {{ active_entry.area.name }} since {{ active_entry.entry_time|date:"g:i A" }}
+              {% else %}
+                <span class="badge text-bg-light border">Outside</span>
+              {% endif %}
+            </p>
+          </div>
+
+          {% if active_entry %}
+            <form method="post" action="{% url 'check_out' active_entry.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-exit btn-lg">Check out</button>
+            </form>
+          {% else %}
+            <form method="post" action="{% url 'check_in' vehicle.pk %}" class="d-flex flex-wrap gap-2 align-items-center">
+              {% csrf_token %}
+              <input type="hidden" name="q" value="{{ query }}">
+              <label for="area-{{ vehicle.pk }}" class="visually-hidden">Area the owner chose</label>
+              <select id="area-{{ vehicle.pk }}" name="area" class="form-select form-select-lg" style="width: auto;">
+                <option value="">Area the owner chose&hellip;</option>
+                {% for area in areas %}
+                  <option value="{{ area.pk }}"{% if area.free <= 0 %} disabled{% endif %}>
+                    {{ area.name }} &ndash; {% if area.free <= 0 %}full{% else %}{{ area.free }} free{% endif %}
+                  </option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="btn btn-entry btn-lg">Check in</button>
+            </form>
+          {% endif %}
+        </div>
+      </div></div>
+    {% empty %}
+      <div class="alert alert-danger">
+        No registered vehicle matches "{{ query }}". Check the ID number or plate, or ask the owner to register the vehicle under My Vehicles.
+      </div>
+    {% endfor %}
+  </section>
+{% endif %}
+
+<p class="section-label">Free slots</p>
+<div class="mb-4">{% include "includes/area_tiles.html" %}</div>
+
+<p class="section-label" id="parked-now">Parked now</p>
+<div class="card">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead>
+        <tr>
+          <th scope="col">Plate</th>
+          <th scope="col">Owner</th>
+          <th scope="col">Area</th>
+          <th scope="col">Since</th>
+          <th scope="col">Recorded by</th>
+          <th scope="col" class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in parked_now %}
+          <tr>
+            <th scope="row" class="num">{{ entry.vehicle.plate_number }}</th>
+            <td>{{ entry.vehicle.owner.account.get_full_name|default:entry.vehicle.owner.account.username }}</td>
+            <td>{{ entry.area.name }}</td>
+            <td class="num">{{ entry.entry_time|date:"M j, g:i A" }}</td>
+            <td>{% if entry.recorded_by == user %}You{% else %}{{ entry.recorded_by.get_full_name|default:entry.recorded_by.username }}{% endif %}</td>
+            <td class="text-end text-nowrap">
+              <form method="post" action="{% url 'check_out' entry.pk %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-exit">Check out</button>
+              </form>
+              {% if entry.recorded_by == user %}
+                <a class="btn btn-sm btn-tappark-neutral" href="{% url 'entry_edit' entry.pk %}">Correct</a>
+                <a class="btn btn-sm btn-outline-danger" href="{% url 'entry_delete' entry.pk %}">Undo</a>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6" class="text-center text-body-secondary py-4">No vehicles are parked right now.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
 </div>
+<p class="small text-body-secondary mt-2">You can correct or undo only the entries you recorded. Ask an administrator to change other entries.</p>
 {% endblock %}

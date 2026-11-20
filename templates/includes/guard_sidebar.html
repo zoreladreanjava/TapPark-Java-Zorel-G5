@@ -1,0 +1,6 @@
+{# Guard menu. Everything happens on the gate screen. #}
+<li class="nav-item">
+  <a class="nav-link{% if active == 'gate' %} active" aria-current="page{% endif %}" href="{% url 'guard_dashboard' %}">Gate screen</a>
+</li>
+<li class="nav-item"><a class="nav-link" href="{% url 'guard_dashboard' %}#search">Check in / Check out</a></li>
+<li class="nav-item"><a class="nav-link" href="{% url 'guard_dashboard' %}#parked-now">Parked now &amp; corrections</a></li>

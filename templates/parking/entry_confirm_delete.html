@@ -1,0 +1,25 @@
+{% extends "dashboards/dashboard_base.html" %}
+
+{% block title %}Undo entry{% endblock %}
+{% block sidebar_title %}{% if user.is_admin_role %}Administrator{% else %}Guard{% endif %}{% endblock %}
+{% block sidebar %}
+  {% if user.is_admin_role %}{% include "includes/admin_sidebar.html" with active="history" %}{% else %}{% include "includes/guard_sidebar.html" %}{% endif %}
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="card" style="max-width: 560px;">
+  <div class="card-body p-4">
+    <h1 class="h3 mb-3">Undo this entry?</h1>
+    <p>
+      <strong class="num">{{ entry.vehicle.plate_number }}</strong> in {{ entry.area.name }},
+      recorded {{ entry.entry_time|date:"M j, Y g:i A" }}.
+    </p>
+    <p class="text-body-secondary">Use this only for an entry recorded by mistake. The record is deleted and the slot becomes free.</p>
+    <form method="post" class="d-flex gap-2">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger">Undo entry</button>
+      <a class="btn btn-tappark-neutral" href="{% if user.is_admin_role %}{% url 'admin_history' %}{% else %}{% url 'guard_dashboard' %}{% endif %}">Cancel</a>
+    </form>
+  </div>
+</div>
+{% endblock %}
