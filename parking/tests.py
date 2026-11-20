@@ -3,7 +3,7 @@ from django.urls import reverse
 
 from accounts.models import Account
 
-from .models import ParkingArea
+from .models import ParkingArea, Vehicle, VehicleOwner
 
 PASSWORD = "Parking-Slot-42"
 
@@ -72,3 +72,99 @@ class ParkingAreaTests(TestCase):
     def test_logged_out_redirects_to_login(self):
         response = self.client.get(reverse("area_list"))
         self.assertRedirects(response, f"{reverse('login')}?next={reverse('area_list')}")
+
+
+class MyVehiclesTests(TestCase):
+    def setUp(self):
+        self.owner = make_user("owner1", Account.Role.OWNER)
+        self.other = make_user("owner2", Account.Role.OWNER)
+        self.admin = make_user("admin1", Account.Role.ADMIN)
+        self.guard = make_user("guard1", Account.Role.GUARD)
+        self.other_details = VehicleOwner.objects.create(account=self.other, id_number="23-0000-002")
+        self.other_vehicle = Vehicle.objects.create(owner=self.other_details, plate_number="XYZ 999", vehicle_type="CAR")
+
+    def add_details(self):
+        return VehicleOwner.objects.create(account=self.owner, id_number="23-0000-001")
+
+    def test_owner_must_add_id_number_before_vehicle(self):
+        self.client.force_login(self.owner)
+        response = self.client.get(reverse("vehicle_create"))
+        self.assertRedirects(response, reverse("owner_details_edit"))
+
+    def test_owner_saves_details_linked_to_own_account(self):
+        self.client.force_login(self.owner)
+        self.client.post(reverse("owner_details_edit"), {"id_number": " 23-1234-567 ", "owner_type": "STUDENT"})
+        details = VehicleOwner.objects.get(account=self.owner)
+        self.assertEqual(details.id_number, "23-1234-567")
+
+    def test_details_validation(self):
+        self.client.force_login(self.owner)
+        cases = [
+            ({"id_number": "", "owner_type": "STUDENT"}, "Enter your campus ID number."),
+            ({"id_number": "23-0000-002", "owner_type": "STUDENT"}, "This ID number is already registered to another owner."),
+            ({"id_number": "12 34!", "owner_type": "STUDENT"}, "Use 4 to 20 letters, digits or dashes, e.g. 23-1234-567."),
+        ]
+        for data, message in cases:
+            with self.subTest(data=data):
+                response = self.client.post(reverse("owner_details_edit"), data)
+                self.assertFormError(response.context["form"], "id_number", message)
+
+    def test_owner_registers_vehicle_with_normalized_plate(self):
+        details = self.add_details()
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            reverse("vehicle_create"), {"plate_number": "abc  1234", "vehicle_type": "CAR"}, follow=True
+        )
+        vehicle = Vehicle.objects.get(owner=details)
+        self.assertEqual(vehicle.plate_number, "ABC 1234")
+        self.assertContains(response, "Vehicle ABC 1234 registered.")
+
+    def test_vehicle_validation(self):
+        self.add_details()
+        self.client.force_login(self.owner)
+        cases = [
+            ({"plate_number": "", "vehicle_type": "CAR"}, "plate_number", "Enter the plate number."),
+            ({"plate_number": "xyz 999", "vehicle_type": "CAR"}, "plate_number", "This plate number is already registered."),
+            ({"plate_number": "AB--12", "vehicle_type": "CAR"}, "plate_number",
+             "Use letters and digits separated by single spaces or dashes, e.g. ABC 1234 or MC-1234."),
+            ({"plate_number": "MC-1234", "vehicle_type": ""}, "vehicle_type", "Choose the vehicle type."),
+        ]
+        for data, field, message in cases:
+            with self.subTest(data=data):
+                response = self.client.post(reverse("vehicle_create"), data)
+                self.assertFormError(response.context["form"], field, message)
+
+    def test_owner_edits_and_removes_own_vehicle(self):
+        details = self.add_details()
+        vehicle = Vehicle.objects.create(owner=details, plate_number="MC-1234", vehicle_type="MOTORCYCLE")
+        self.client.force_login(self.owner)
+        self.client.post(reverse("vehicle_edit", args=[vehicle.pk]),
+                         {"plate_number": "MC-1234", "vehicle_type": "MOTORCYCLE", "description": "Red scooter"})
+        vehicle.refresh_from_db()
+        self.assertEqual(vehicle.description, "Red scooter")
+        self.client.post(reverse("vehicle_delete", args=[vehicle.pk]))
+        self.assertFalse(Vehicle.objects.filter(pk=vehicle.pk).exists())
+
+    def test_owner_cannot_see_or_change_another_owners_vehicle(self):
+        self.add_details()
+        self.client.force_login(self.owner)
+        for name in ("vehicle_edit", "vehicle_delete"):
+            with self.subTest(url=name):
+                self.assertEqual(self.client.get(reverse(name, args=[self.other_vehicle.pk])).status_code, 404)
+                self.assertEqual(self.client.post(reverse(name, args=[self.other_vehicle.pk])).status_code, 404)
+        self.assertNotContains(self.client.get(reverse("my_vehicles")), "XYZ 999")
+        self.assertTrue(Vehicle.objects.filter(pk=self.other_vehicle.pk).exists())
+
+    def test_admin_sees_all_vehicles_and_can_search(self):
+        self.client.force_login(self.admin)
+        self.assertContains(self.client.get(reverse("admin_vehicle_list")), "XYZ 999")
+        self.assertContains(self.client.get(reverse("admin_vehicle_list"), {"q": "23-0000-002"}), "XYZ 999")
+        self.assertNotContains(self.client.get(reverse("admin_vehicle_list"), {"q": "nomatch"}), "XYZ 999")
+
+    def test_role_access(self):
+        self.client.force_login(self.guard)
+        for name in ("my_vehicles", "vehicle_create", "owner_details_edit", "admin_vehicle_list"):
+            with self.subTest(url=name):
+                self.assertEqual(self.client.get(reverse(name)).status_code, 403)
+        self.client.force_login(self.owner)
+        self.assertEqual(self.client.get(reverse("admin_vehicle_list")).status_code, 403)

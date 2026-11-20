@@ -1,0 +1,56 @@
+{% extends "dashboards/dashboard_base.html" %}
+
+{% block title %}Owners &amp; vehicles{% endblock %}
+{% block sidebar_title %}Administrator{% endblock %}
+{% block sidebar %}{% include "includes/admin_sidebar.html" with active="vehicles" %}{% endblock %}
+
+{% block dashboard_content %}
+<div class="mb-4">
+  <h1 class="h3 mb-1">Owners &amp; vehicles</h1>
+  <p class="text-body-secondary mb-0">Vehicles registered by owners. Owners add and edit their own vehicles.</p>
+</div>
+
+<form method="get" class="row g-2 mb-3">
+  <div class="col-sm-9">
+    <label for="q" class="visually-hidden">Search</label>
+    <input type="search" id="q" name="q" value="{{ query }}" class="form-control" placeholder="Search by plate, ID number or owner name">
+  </div>
+  <div class="col-sm-3 d-flex gap-2">
+    <button type="submit" class="btn btn-tappark flex-grow-1">Search</button>
+    {% if query %}<a class="btn btn-tappark-neutral" href="{% url 'admin_vehicle_list' %}">Clear</a>{% endif %}
+  </div>
+</form>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead>
+        <tr>
+          <th scope="col">Plate number</th>
+          <th scope="col">Type</th>
+          <th scope="col">Owner</th>
+          <th scope="col">ID number</th>
+          <th scope="col">Owner type</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for vehicle in vehicles %}
+          <tr>
+            <th scope="row" class="num">{{ vehicle.plate_number }}</th>
+            <td>{{ vehicle.get_vehicle_type_display }}</td>
+            <td>{{ vehicle.owner.account.get_full_name|default:vehicle.owner.account.username }}</td>
+            <td class="num">{{ vehicle.owner.id_number }}</td>
+            <td>{{ vehicle.owner.get_owner_type_display }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="5" class="text-center text-body-secondary py-4">
+              {% if query %}No vehicles match your search.{% else %}No vehicles registered yet.{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
