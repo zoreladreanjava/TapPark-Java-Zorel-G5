@@ -3,12 +3,7 @@
 {% block title %}My dashboard{% endblock %}
 {% block sidebar_title %}Vehicle owner{% endblock %}
 
-{% block sidebar %}
-  <li class="nav-item"><a class="nav-link active" aria-current="page" href="{% url 'owner_dashboard' %}">Home</a></li>
-  <li class="nav-item"><span class="nav-link disabled">Parking Availability <span class="badge soon">Coming soon</span></span></li>
-  <li class="nav-item"><span class="nav-link disabled">My Vehicles <span class="badge soon">Coming soon</span></span></li>
-  <li class="nav-item"><span class="nav-link disabled">My Parking History <span class="badge soon">Coming soon</span></span></li>
-{% endblock %}
+{% block sidebar %}{% include "includes/owner_sidebar.html" with active="home" %}{% endblock %}
 
 {% block dashboard_content %}
 <div class="mb-4">
@@ -16,24 +11,36 @@
   <p class="text-body-secondary mb-0">Check where to park before you arrive at the gate.</p>
 </div>
 
-<div class="card hero placeholder-card mb-3"><div class="card-body p-4">
+{% for entry in my_active_entries %}
+  <div class="alert alert-success">
+    <strong class="num">{{ entry.vehicle.plate_number }}</strong> is parked in <strong>{{ entry.area.name }}</strong>
+    since {{ entry.entry_time|date:"g:i A" }}.
+  </div>
+{% endfor %}
+
+<a class="card hero card-link mb-3" href="{% url 'owner_availability' %}"><div class="card-body p-4">
   <p class="section-label mb-1">Right now</p>
-  <h2 class="h4 card-title">Parking Availability <span class="badge soon">Coming soon</span></h2>
-  <p class="card-text text-body-secondary mb-0">Free slots per area, most free first. Viewing doesn't reserve a slot.</p>
-</div></div>
+  {% if total_free > 0 %}
+    <h2 class="h4 card-title">Parking available &rsaquo;</h2>
+    <p class="card-text mb-0"><strong class="num">{{ total_free }}</strong> free slot{{ total_free|pluralize }} in {{ areas|length }} area{{ areas|length|pluralize }}. See each area.</p>
+  {% else %}
+    <h2 class="h4 card-title">No parking available &rsaquo;</h2>
+    <p class="card-text mb-0">Every area is full right now.</p>
+  {% endif %}
+</div></a>
 
 <div class="row g-3">
   <div class="col-md-6">
-    <div class="card h-100 placeholder-card"><div class="card-body">
-      <h2 class="h5 card-title">My Vehicles <span class="badge soon">Coming soon</span></h2>
-      <p class="card-text text-body-secondary">The vehicles registered under your name.</p>
-    </div></div>
+    <a class="card h-100 card-link" href="{% url 'my_vehicles' %}"><div class="card-body">
+      <h2 class="h5 card-title">My Vehicles &rsaquo;</h2>
+      <p class="card-text text-body-secondary">Register your campus ID number and the vehicles you park on campus.</p>
+    </div></a>
   </div>
   <div class="col-md-6">
-    <div class="card h-100 placeholder-card"><div class="card-body">
-      <h2 class="h5 card-title">My Parking History <span class="badge soon">Coming soon</span></h2>
+    <a class="card h-100 card-link" href="{% url 'owner_history' %}"><div class="card-body">
+      <h2 class="h5 card-title">My Parking History &rsaquo;</h2>
       <p class="card-text text-body-secondary">Your past entries and exits.</p>
-    </div></div>
+    </div></a>
   </div>
 </div>
 {% endblock %}

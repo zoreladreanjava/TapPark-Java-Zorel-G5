@@ -1,0 +1,13 @@
+{# Vehicle owner menu. Pass active="home", "availability", "vehicles" or "history". #}
+<li class="nav-item">
+  <a class="nav-link{% if active == 'home' %} active" aria-current="page{% endif %}" href="{% url 'owner_dashboard' %}">Home</a>
+</li>
+<li class="nav-item">
+  <a class="nav-link{% if active == 'availability' %} active" aria-current="page{% endif %}" href="{% url 'owner_availability' %}">Parking Availability</a>
+</li>
+<li class="nav-item">
+  <a class="nav-link{% if active == 'vehicles' %} active" aria-current="page{% endif %}" href="{% url 'my_vehicles' %}">My Vehicles</a>
+</li>
+<li class="nav-item">
+  <a class="nav-link{% if active == 'history' %} active" aria-current="page{% endif %}" href="{% url 'owner_history' %}">My Parking History</a>
+</li>

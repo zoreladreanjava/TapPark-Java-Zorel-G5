@@ -227,6 +227,70 @@
   font-weight: 600;
 }
 
+/* Parking: green = entry / available, blue = exit, maroon = full (prototype rules) */
+:root {
+  --tp-green: #2f7d4f;
+  --tp-green-fill: #dcefe2;
+  --tp-blue: #2f5a9e;
+  --tp-blue-fill: #dde6f4;
+  --tp-track: #ede6d6;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.meter {
+  height: 8px;
+  border-radius: 4px;
+  background-color: var(--tp-track);
+  overflow: hidden;
+}
+
+.meter > span {
+  display: block;
+  height: 100%;
+  background-color: var(--tp-green);
+}
+
+.badge.status-available,
+.badge.status-inside {
+  background-color: var(--tp-green-fill);
+  color: var(--tp-green);
+}
+
+.badge.status-exited {
+  background-color: var(--tp-blue-fill);
+  color: var(--tp-blue);
+}
+
+.badge.status-full {
+  background-color: var(--tp-ink);
+  color: #fff;
+}
+
+.area-tile.is-full {
+  background-color: #f6efe0;
+}
+
+.btn-entry {
+  --bs-btn-bg: var(--tp-green);
+  --bs-btn-border-color: var(--tp-green);
+  --bs-btn-color: #fff;
+  --bs-btn-hover-bg: #256640;
+  --bs-btn-hover-border-color: #256640;
+  --bs-btn-hover-color: #fff;
+}
+
+.btn-exit {
+  --bs-btn-bg: var(--tp-blue);
+  --bs-btn-border-color: var(--tp-blue);
+  --bs-btn-color: #fff;
+  --bs-btn-hover-bg: #244a84;
+  --bs-btn-hover-border-color: #244a84;
+  --bs-btn-hover-color: #fff;
+}
+
 /* Forms: white inputs, red border on fields that have an error */
 .form-control,
 .form-select {

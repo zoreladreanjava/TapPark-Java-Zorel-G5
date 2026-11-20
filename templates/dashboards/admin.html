@@ -8,8 +8,31 @@
 {% block dashboard_content %}
 <div class="mb-4">
   <h1 class="h3 mb-1">Overview</h1>
-  <p class="text-body-secondary mb-0">Welcome, {{ user.first_name|default:user.username }}. Here is a summary of TapPark accounts.</p>
+  <p class="text-body-secondary mb-0">Welcome, {{ user.first_name|default:user.username }}. Here is campus parking right now.</p>
 </div>
+
+<p class="section-label">Parking right now</p>
+<div class="row g-3 mb-3">
+  <div class="col-sm-4">
+    <div class="card h-100"><div class="card-body">
+      <p class="text-body-secondary mb-1">Free slots</p>
+      <p class="stat-value mb-0">{{ total_free }} <span class="fs-6 fw-normal text-body-secondary">of {{ total_capacity }}</span></p>
+    </div></div>
+  </div>
+  <div class="col-sm-4">
+    <div class="card h-100"><div class="card-body">
+      <p class="text-body-secondary mb-1">Vehicles parked</p>
+      <p class="stat-value mb-0">{{ total_parked }}</p>
+    </div></div>
+  </div>
+  <div class="col-sm-4">
+    <a class="card h-100 card-link" href="{% url 'admin_history' %}"><div class="card-body">
+      <p class="text-body-secondary mb-1">Entries today &rsaquo;</p>
+      <p class="stat-value mb-0">{{ entries_today }}</p>
+    </div></a>
+  </div>
+</div>
+<div class="mb-4">{% include "includes/area_tiles.html" %}</div>
 
 <p class="section-label">Accounts</p>
 <div class="row g-3 mb-4">
@@ -42,16 +65,16 @@
 <p class="section-label">Management</p>
 <div class="row g-3">
   <div class="col-md-6">
-    <div class="card h-100 placeholder-card"><div class="card-body">
-      <h2 class="h5 card-title">Manage Parking Areas <span class="badge soon">Coming soon</span></h2>
+    <a class="card h-100 card-link" href="{% url 'area_list' %}"><div class="card-body">
+      <h2 class="h5 card-title">Manage Parking Areas &rsaquo;</h2>
       <p class="card-text text-body-secondary">Add and edit parking areas and their capacity.</p>
-    </div></div>
+    </div></a>
   </div>
   <div class="col-md-6">
-    <div class="card h-100 placeholder-card"><div class="card-body">
-      <h2 class="h5 card-title">Manage Owners &amp; Vehicles <span class="badge soon">Coming soon</span></h2>
-      <p class="card-text text-body-secondary">Register vehicle owners and link their vehicles.</p>
-    </div></div>
+    <a class="card h-100 card-link" href="{% url 'admin_vehicle_list' %}"><div class="card-body">
+      <h2 class="h5 card-title">Owners &amp; Vehicles &rsaquo;</h2>
+      <p class="card-text text-body-secondary">Every registered vehicle with its owner and campus ID number.</p>
+    </div></a>
   </div>
   <div class="col-md-6">
     <a class="card h-100 card-link" href="{% url 'staff_list' %}"><div class="card-body">
@@ -60,10 +83,10 @@
     </div></a>
   </div>
   <div class="col-md-6">
-    <div class="card h-100 placeholder-card"><div class="card-body">
-      <h2 class="h5 card-title">Parking History <span class="badge soon">Coming soon</span></h2>
-      <p class="card-text text-body-secondary">All recorded entries and exits, with filters.</p>
-    </div></div>
+    <a class="card h-100 card-link" href="{% url 'admin_history' %}"><div class="card-body">
+      <h2 class="h5 card-title">Parking History &rsaquo;</h2>
+      <p class="card-text text-body-secondary">All recorded entries and exits, with filters. Correct or undo active entries.</p>
+    </div></a>
   </div>
   <div class="col-md-6">
     <div class="card h-100 placeholder-card"><div class="card-body">

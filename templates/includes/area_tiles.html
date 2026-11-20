@@ -1,0 +1,19 @@
+{# Free slots per area, most free first. Needs `areas` from parking_summary(). #}
+<div class="row g-3">
+  {% for area in areas %}
+    <div class="col-sm-6 col-xl-4">
+      <div class="card h-100 area-tile{% if area.free <= 0 %} is-full{% endif %}"><div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+          <h3 class="h6 mb-1">{{ area.name }}</h3>
+          {% if area.free <= 0 %}<span class="badge status-full">Full</span>{% else %}<span class="badge status-available">Available</span>{% endif %}
+        </div>
+        <p class="mb-2 num"><strong class="fs-4">{{ area.free }}</strong> <span class="text-body-secondary">of {{ area.capacity }} free</span></p>
+        <div class="meter" role="img" aria-label="{{ area.free }} of {{ area.capacity }} slots free">
+          <span style="width: {% widthratio area.free area.capacity 100 %}%"></span>
+        </div>
+      </div></div>
+    </div>
+  {% empty %}
+    <div class="col-12"><p class="text-body-secondary mb-0">No parking areas have been set up yet.</p></div>
+  {% endfor %}
+</div>
