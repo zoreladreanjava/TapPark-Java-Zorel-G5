@@ -178,13 +178,38 @@ Registration always creates an Owner. Nobody can choose their own role.
 - [x] Automated tests in `parking/tests.py`
 - [x] Implementation report: `docs/TapPark-Java-Zorel-G5-PD2.pdf`
 
+## Hardening (Project Development 3)
+
+- [x] PD2 issues fixed: every Correct / Undo is logged in `record_correction` with a required reason (ISS-01);
+      availability pages refresh every 30 seconds (ISS-02); old profile photo files are deleted (ISS-03)
+- [x] Server-side validation on every form, with clear success and error messages
+- [x] Business rules: no check-in to a full area (the area row is locked during check-in, so two guards can't take
+      the last slot), one active entry per vehicle, no double check-out, no future entry times, no removing records
+      that history depends on
+- [x] Custom 400, 403, 404 and 500 pages (`templates/`); unknown IDs give 404 instead of crashing
+- [x] Every view requires login and checks the role in the view; owners and guards can't open other users' records
+- [x] CSRF token on every POST form; deletes and updates are POST only and ask for confirmation
+- [x] Django ORM only (no raw SQL), no `|safe` on user input, secrets and `DEBUG` in `.env`
+- [x] Multi-step saves in `transaction.atomic()`, redirect after every successful POST, `select_related` /
+      `prefetch_related` on list pages
+- [x] Report: `docs/TapPark-Java-Zorel-G5-PD3.pdf`
+
 ## Running the tests
 
+With the virtual environment active, run:
+
 ```powershell
-python manage.py test accounts parking --keepdb
+python manage.py test
 ```
 
-Django runs the tests in a separate `test_postgres` database on Supabase, so your real accounts are not touched.
-Use `--keepdb`: without it, Django tries to delete the test database at the end, and Supabase's connection pooler
-can block that with the error "database test_postgres is being accessed by other users". `--keepdb` keeps the
-empty test database and reuses it next time.
+This runs all tests (`accounts/tests.py` and `parking/tests.py`, 75 tests) and should end with `OK`.
+To run only one app, add its name, for example `python manage.py test parking`.
+
+- Django creates a separate `test_postgres` database on your Supabase project, so your real data is not touched.
+  Each test runs in a transaction that is rolled back afterwards.
+- The project uses a small custom test runner (`config/test_runner.py`) that always keeps the test database
+  (the same as `--keepdb`). Supabase's connection pooler can keep a connection to `test_postgres` open, which would
+  otherwise stop Django from deleting it at the end. Because of this runner, plain `python manage.py test` works
+  without a "delete the test database?" prompt.
+- The first run takes longer, because it creates the test database and its tables. A full run takes about 3 minutes
+  over the internet.

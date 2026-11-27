@@ -3,9 +3,10 @@ import tempfile
 from datetime import timedelta
 
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase, override_settings
+from django.test import Client, RequestFactory, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
+from django.views.defaults import server_error
 
 from accounts.models import Account
 
@@ -395,3 +396,79 @@ class PD2IssueFixTests(TestCase):
 
             self.client.post(reverse("profile_edit"), {**data, "remove_photo": "on"})
             self.assertFalse(os.path.exists(second))  # removed photo deleted from disk
+
+
+class HardeningTests(TestCase):
+    """PD3: the system handles bad URLs, missing tokens, logged-out users and odd input safely."""
+
+    def setUp(self):
+        self.admin = make_user("admin1", Account.Role.ADMIN)
+        self.guard = make_user("guard1", Account.Role.GUARD)
+        self.owner = make_user("owner1", Account.Role.OWNER)
+        self.area = ParkingArea.objects.create(name="Area A", capacity=5, created_by=self.admin)
+        details = VehicleOwner.objects.create(account=self.owner, id_number="23-1111-111")
+        self.car = Vehicle.objects.create(owner=details, plate_number="ABC 1234", vehicle_type="CAR")
+
+    def test_unknown_page_shows_custom_404(self):
+        response = self.client.get("/this-page-does-not-exist/")
+        self.assertEqual(response.status_code, 404)
+        self.assertContains(response, "Page not found", status_code=404)
+        self.assertNotContains(response, "Traceback", status_code=404)
+
+    def test_unknown_record_ids_give_404_not_crash(self):
+        self.client.force_login(self.admin)
+        for name in ("area_edit", "area_delete", "entry_edit", "entry_delete"):
+            with self.subTest(url=name):
+                self.assertEqual(self.client.get(reverse(name, args=[999999])).status_code, 404)
+        self.client.force_login(self.guard)
+        response = self.client.post(reverse("check_in", args=[999999]), {"area": self.area.pk})
+        self.assertEqual(response.status_code, 404)
+
+    def test_custom_500_page(self):
+        request = RequestFactory().get("/")
+        response = server_error(request)
+        self.assertEqual(response.status_code, 500)
+        self.assertIn(b"Something went wrong", response.content)
+
+    def test_post_without_csrf_token_is_rejected(self):
+        client = Client(enforce_csrf_checks=True)
+        client.force_login(self.guard)
+        response = client.post(reverse("check_in", args=[self.car.pk]), {"area": self.area.pk})
+        self.assertEqual(response.status_code, 403)
+        self.assertContains(response, "This form has expired", status_code=403)
+        self.assertFalse(EntryLog.objects.exists())
+
+    def test_logged_out_users_cannot_change_data(self):
+        response = self.client.post(reverse("check_in", args=[self.car.pk]), {"area": self.area.pk})
+        self.assertRedirects(response, f"{reverse('login')}?next={reverse('check_in', args=[self.car.pk])}")
+        self.assertFalse(EntryLog.objects.exists())
+
+    def test_invalid_area_value_is_a_form_error_not_a_crash(self):
+        self.client.force_login(self.guard)
+        response = self.client.post(reverse("check_in", args=[self.car.pk]), {"area": "not-a-number"}, follow=True)
+        self.assertContains(response, "Choose a valid parking area.")
+        self.assertFalse(EntryLog.objects.exists())
+
+    def test_very_long_search_is_handled(self):
+        self.client.force_login(self.guard)
+        response = self.client.get(reverse("guard_dashboard"), {"q": "A" * 5000})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["query"]), 50)
+
+    def test_get_never_changes_data(self):
+        self.client.force_login(self.admin)
+        self.client.get(reverse("area_delete", args=[self.area.pk]))  # only shows the confirmation page
+        self.assertTrue(ParkingArea.objects.filter(pk=self.area.pk).exists())
+        self.client.force_login(self.owner)
+        self.client.get(reverse("vehicle_delete", args=[self.car.pk]))
+        self.assertTrue(Vehicle.objects.filter(pk=self.car.pk).exists())
+
+    def test_area_in_correction_log_cannot_be_removed(self):
+        # An undone entry leaves only a correction record that points at the area.
+        entry = EntryLog.objects.create(vehicle=self.car, area=self.area, recorded_by=self.guard)
+        self.client.force_login(self.guard)
+        self.client.post(reverse("entry_delete", args=[entry.pk]), {"reason": "Test"})
+        self.client.force_login(self.admin)
+        response = self.client.post(reverse("area_delete", args=[self.area.pk]), follow=True)
+        self.assertContains(response, "can&#x27;t be removed")
+        self.assertTrue(ParkingArea.objects.filter(pk=self.area.pk).exists())
