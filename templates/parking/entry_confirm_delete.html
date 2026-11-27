@@ -14,11 +14,14 @@
       <strong class="num">{{ entry.vehicle.plate_number }}</strong> in {{ entry.area.name }},
       recorded {{ entry.entry_time|date:"M j, Y g:i A" }}.
     </p>
-    <p class="text-body-secondary">Use this only for an entry recorded by mistake. The record is deleted and the slot becomes free.</p>
-    <form method="post" class="d-flex gap-2">
+    <p class="text-body-secondary">Use this only for an entry recorded by mistake. The entry is removed and the slot becomes free. The details and your reason are kept in the correction log.</p>
+    <form method="post" novalidate>
       {% csrf_token %}
+      {% include "includes/form_field.html" with field=form.reason %}
+      <div class="d-flex gap-2">
       <button type="submit" class="btn btn-danger">Undo entry</button>
       <a class="btn btn-tappark-neutral" href="{% if user.is_admin_role %}{% url 'admin_history' %}{% else %}{% url 'guard_dashboard' %}{% endif %}">Cancel</a>
+      </div>
     </form>
   </div>
 </div>
