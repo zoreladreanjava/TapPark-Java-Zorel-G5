@@ -101,6 +101,10 @@ DATABASES = {
 }
 
 
+# Tests: always keep the Supabase test database (see config/test_runner.py).
+TEST_RUNNER = "config.test_runner.KeepDatabaseRunner"
+
+
 # Login and logout
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "dashboard"
