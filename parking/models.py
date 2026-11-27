@@ -170,6 +170,43 @@ class EntryLog(models.Model):
         return user.is_admin_role or (user.is_guard_role and self.recorded_by_id == user.pk)
 
 
+class RecordCorrection(models.Model):
+    """An audit record of every Correct or Undo on an entry (fixes PD2 ISS-01).
+
+    The entry link is kept even after an Undo deletes the entry (SET_NULL), and the
+    plate, areas and times are copied, so the history stays readable.
+    """
+
+    class Action(models.TextChoices):
+        CORRECT = "CORRECT", "Corrected"
+        UNDO = "UNDO", "Undone"
+
+    entry = models.ForeignKey(
+        EntryLog, on_delete=models.SET_NULL, null=True, blank=True, related_name="corrections"
+    )
+    action = models.CharField(max_length=10, choices=Action.choices)
+    plate_number = models.CharField(max_length=12)
+    old_area = models.ForeignKey(ParkingArea, on_delete=models.PROTECT, related_name="+")
+    new_area = models.ForeignKey(ParkingArea, on_delete=models.PROTECT, null=True, blank=True, related_name="+")
+    old_entry_time = models.DateTimeField()
+    new_entry_time = models.DateTimeField(null=True, blank=True)
+    reason = models.CharField(max_length=200)
+    corrected_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="corrections_made"
+    )
+    corrected_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        db_table = "record_correction"
+        ordering = ["-corrected_at"]
+        constraints = [
+            models.CheckConstraint(condition=Q(action__in=["CORRECT", "UNDO"]), name="record_correction_action_valid"),
+        ]
+
+    def __str__(self):
+        return f"{self.get_action_display()} {self.plate_number} by {self.corrected_by}"
+
+
 class ExitLog(models.Model):
     """A vehicle leaving. It closes exactly one entry."""
 

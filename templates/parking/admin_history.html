@@ -7,7 +7,7 @@
 {% block dashboard_content %}
 <div class="mb-4">
   <h1 class="h3 mb-1">Parking history</h1>
-  <p class="text-body-secondary mb-0">All entries and exits. Active entries can be corrected or undone.</p>
+  <p class="text-body-secondary mb-0">All entries and exits. Active entries can be corrected or undone; every change is kept in the correction log below.</p>
 </div>
 
 <form method="get" class="row g-2 mb-3">
@@ -68,6 +68,40 @@
               {% if query or status %}No records match your filter.{% else %}No parking records yet.{% endif %}
             </td>
           </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<p class="section-label mt-4">Correction log</p>
+<div class="card">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead>
+        <tr>
+          <th scope="col">When</th>
+          <th scope="col">Action</th>
+          <th scope="col">Vehicle</th>
+          <th scope="col">Before</th>
+          <th scope="col">After</th>
+          <th scope="col">Reason</th>
+          <th scope="col">By</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for correction in corrections %}
+          <tr>
+            <td class="num">{{ correction.corrected_at|date:"M j, g:i A" }}</td>
+            <td><span class="badge {% if correction.action == 'UNDO' %}text-bg-danger{% else %}text-bg-warning{% endif %}">{{ correction.get_action_display }}</span></td>
+            <th scope="row" class="num">{{ correction.plate_number }}</th>
+            <td>{{ correction.old_area.name }}, {{ correction.old_entry_time|date:"M j, g:i A" }}</td>
+            <td>{% if correction.new_area %}{{ correction.new_area.name }}, {{ correction.new_entry_time|date:"M j, g:i A" }}{% else %}Entry removed{% endif %}</td>
+            <td>{{ correction.reason }}</td>
+            <td>{{ correction.corrected_by.username }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7" class="text-center text-body-secondary py-4">No corrections or undos yet.</td></tr>
         {% endfor %}
       </tbody>
     </table>

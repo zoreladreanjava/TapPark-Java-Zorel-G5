@@ -12,10 +12,15 @@
     <h1 class="h3 mb-1">Correct entry: <span class="num">{{ entry.vehicle.plate_number }}</span></h1>
     <p class="text-body-secondary mb-4">Fix the area or the entry time if they were recorded wrong.</p>
 
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">{% for error in form.non_field_errors %}{{ error }}{% endfor %}</div>
+    {% endif %}
+
     <form method="post" novalidate>
       {% csrf_token %}
       {% include "includes/form_field.html" with field=form.area %}
       {% include "includes/form_field.html" with field=form.entry_time %}
+      {% include "includes/form_field.html" with field=form.reason %}
       <div class="d-flex gap-2">
         <button type="submit" class="btn btn-tappark flex-grow-1 py-2">Save correction</button>
         <a class="btn btn-tappark-neutral py-2" href="{% if user.is_admin_role %}{% url 'admin_history' %}{% else %}{% url 'guard_dashboard' %}{% endif %}">Cancel</a>

@@ -108,8 +108,17 @@ class CheckInForm(forms.Form):
         return cleaned_data
 
 
+REASON_HELP = "Required. Saved in the correction log, e.g. Owner parked in Area B, not Area A."
+
+
 class EntryCorrectionForm(BootstrapFormMixin, forms.ModelForm):
     """Correct the area or entry time of an entry that is still active."""
+
+    reason = forms.CharField(
+        max_length=200,
+        help_text=REASON_HELP,
+        error_messages={"required": "Enter the reason for this correction."},
+    )
 
     class Meta:
         model = EntryLog
@@ -134,3 +143,26 @@ class EntryCorrectionForm(BootstrapFormMixin, forms.ModelForm):
         if area.pk != self.instance.area_id and not area_has_room(area, ignore_entry=self.instance):
             raise forms.ValidationError(f"{area.name} is full. Choose another area.")
         return area
+
+    def clean(self):
+        cleaned_data = super().clean()
+        area = cleaned_data.get("area")
+        entry_time = cleaned_data.get("entry_time")
+        # The instance still holds the saved values here (the form copies the new
+        # values onto it only after clean()).
+        if area and entry_time:
+            same_area = area.pk == self.instance.area_id
+            same_time = entry_time.replace(second=0, microsecond=0) == self.instance.entry_time.replace(second=0, microsecond=0)
+            if same_area and same_time:
+                raise forms.ValidationError("Nothing was changed. Change the area or the entry time, or press Cancel.")
+        return cleaned_data
+
+
+class UndoEntryForm(BootstrapFormMixin, forms.Form):
+    """Undo an entry recorded by mistake. The reason is kept in the correction log."""
+
+    reason = forms.CharField(
+        max_length=200,
+        help_text=REASON_HELP,
+        error_messages={"required": "Enter the reason for undoing this entry."},
+    )

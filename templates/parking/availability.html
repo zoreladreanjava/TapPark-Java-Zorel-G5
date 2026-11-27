@@ -1,6 +1,7 @@
 {% extends "dashboards/dashboard_base.html" %}
 
 {% block title %}Parking availability{% endblock %}
+{% block head %}{% include "includes/auto_refresh.html" %}{% endblock %}
 {% block sidebar_title %}Vehicle owner{% endblock %}
 {% block sidebar %}{% include "includes/owner_sidebar.html" with active="availability" %}{% endblock %}
 
@@ -17,7 +18,7 @@
 </div></div>
 
 <div class="d-flex justify-content-between align-items-center mb-2">
-  <p class="section-label mb-0">Areas, most free first</p>
+  <p class="section-label mb-0">Areas, most free first &middot; <span class="text-body-secondary fw-normal" style="text-transform: none; letter-spacing: 0;">Last updated {% now "g:i:s A" %}, refreshes every 30 seconds</span></p>
   <a class="btn btn-sm btn-tappark-neutral" href="{% url 'owner_availability' %}">Refresh</a>
 </div>
 {% include "includes/area_tiles.html" %}
