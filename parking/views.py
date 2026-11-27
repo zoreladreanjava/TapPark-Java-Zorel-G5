@@ -13,8 +13,15 @@ from django.views.decorators.http import require_POST
 from accounts.decorators import role_required
 from accounts.models import Account
 
-from .forms import CheckInForm, EntryCorrectionForm, ParkingAreaForm, VehicleForm, VehicleOwnerForm
-from .models import EntryLog, ExitLog, ParkingArea, Vehicle, VehicleOwner
+from .forms import (
+    CheckInForm,
+    EntryCorrectionForm,
+    ParkingAreaForm,
+    UndoEntryForm,
+    VehicleForm,
+    VehicleOwnerForm,
+)
+from .models import EntryLog, ExitLog, ParkingArea, RecordCorrection, Vehicle, VehicleOwner
 
 
 # Parking areas (admins only)
@@ -299,11 +306,26 @@ def after_entry_change(request):
 def entry_edit(request, pk):
     """Correct the area or entry time of an active entry."""
     entry = get_changeable_entry(request, pk)
+    # Remember the saved values before the form changes the entry.
+    old_area, old_time = entry.area, entry.entry_time
     if request.method == "POST":
         form = EntryCorrectionForm(request.POST, instance=entry)
         if form.is_valid():
-            form.save()
-            messages.success(request, f"Entry for {entry.vehicle.plate_number} corrected.")
+            # Save the change and its log record together, or neither.
+            with transaction.atomic():
+                entry = form.save()
+                RecordCorrection.objects.create(
+                    entry=entry,
+                    action=RecordCorrection.Action.CORRECT,
+                    plate_number=entry.vehicle.plate_number,
+                    old_area=old_area,
+                    new_area=entry.area,
+                    old_entry_time=old_time,
+                    new_entry_time=entry.entry_time,
+                    reason=form.cleaned_data["reason"],
+                    corrected_by=request.user,
+                )
+            messages.success(request, f"Entry for {entry.vehicle.plate_number} corrected. The change was logged.")
             return after_entry_change(request)
     else:
         form = EntryCorrectionForm(instance=entry)
@@ -313,14 +335,28 @@ def entry_edit(request, pk):
 @login_required
 @role_required(Account.Role.GUARD, Account.Role.ADMIN)
 def entry_delete(request, pk):
-    """Undo an entry recorded by mistake. GET asks to confirm; POST deletes it."""
+    """Undo an entry recorded by mistake. GET asks to confirm; POST deletes it and logs why."""
     entry = get_changeable_entry(request, pk)
     if request.method == "POST":
-        plate = entry.vehicle.plate_number
-        entry.delete()
-        messages.success(request, f"Entry for {plate} undone. The slot is free again.")
-        return after_entry_change(request)
-    return render(request, "parking/entry_confirm_delete.html", {"entry": entry})
+        form = UndoEntryForm(request.POST)
+        if form.is_valid():
+            plate = entry.vehicle.plate_number
+            with transaction.atomic():
+                RecordCorrection.objects.create(
+                    entry=entry,
+                    action=RecordCorrection.Action.UNDO,
+                    plate_number=plate,
+                    old_area=entry.area,
+                    old_entry_time=entry.entry_time,
+                    reason=form.cleaned_data["reason"],
+                    corrected_by=request.user,
+                )
+                entry.delete()  # the log keeps the details (its entry link becomes empty)
+            messages.success(request, f"Entry for {plate} undone. The slot is free again, and the undo was logged.")
+            return after_entry_change(request)
+    else:
+        form = UndoEntryForm()
+    return render(request, "parking/entry_confirm_delete.html", {"entry": entry, "form": form})
 
 
 @login_required
@@ -364,5 +400,6 @@ def admin_history(request):
         "query": query,
         "status": status,
         "status_choices": EntryLog.Status.choices,
+        "corrections": RecordCorrection.objects.select_related("old_area", "new_area", "corrected_by")[:50],
     }
     return render(request, "parking/admin_history.html", context)

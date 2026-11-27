@@ -119,11 +119,15 @@ def profile_edit(request):
     # Edit a fresh copy of the account. If the form has errors, request.user
     # (shown in the navbar) keeps its saved values instead of the bad input.
     account = Account.objects.get(pk=request.user.pk)
+    old_photo = account.profile_photo.name  # empty string if there is no photo
 
     if request.method == "POST":
         form = ProfileForm(request.POST, request.FILES, instance=account)
         if form.is_valid():
-            form.save()
+            account = form.save()
+            # Delete the old photo file when it was replaced or removed (fixes PD2 ISS-03).
+            if old_photo and old_photo != account.profile_photo.name:
+                account.profile_photo.storage.delete(old_photo)
             messages.success(request, "Your profile has been updated.")
             return redirect("profile")
     else:

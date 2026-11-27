@@ -1,6 +1,7 @@
 {% extends "dashboards/dashboard_base.html" %}
 
 {% block title %}Admin dashboard{% endblock %}
+{% block head %}{% include "includes/auto_refresh.html" %}{% endblock %}
 {% block sidebar_title %}Administrator{% endblock %}
 
 {% block sidebar %}{% include "includes/admin_sidebar.html" with active="overview" %}{% endblock %}
@@ -8,7 +9,7 @@
 {% block dashboard_content %}
 <div class="mb-4">
   <h1 class="h3 mb-1">Overview</h1>
-  <p class="text-body-secondary mb-0">Welcome, {{ user.first_name|default:user.username }}. Here is campus parking right now.</p>
+  <p class="text-body-secondary mb-0">Welcome, {{ user.first_name|default:user.username }}. Here is campus parking right now (last updated {% now "g:i:s A" %}; refreshes every 30 seconds).</p>
 </div>
 
 <p class="section-label">Parking right now</p>
