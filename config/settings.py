@@ -33,6 +33,16 @@ DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "yes")
 
 ALLOWED_HOSTS = [host.strip() for host in os.getenv("ALLOWED_HOSTS", "").split(",") if host.strip()]
 
+# Security headers and cookies
+X_FRAME_OPTIONS = "DENY"  # the site can't be shown inside another site's frame (clickjacking)
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "same-origin"
+SESSION_COOKIE_HTTPONLY = True  # JavaScript can't read the login cookie
+CSRF_COOKIE_HTTPONLY = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # shared lab / guard-house computers
+# Over HTTPS (when deployed), set COOKIES_SECURE=True in .env so cookies are only sent encrypted.
+SESSION_COOKIE_SECURE = CSRF_COOKIE_SECURE = os.getenv("COOKIES_SECURE", "False").lower() in ("true", "1", "yes")
+
 
 # Application definition
 

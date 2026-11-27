@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from accounts.models import Account
 
-from .models import EntryLog, ParkingArea, RecordCorrection, Vehicle, VehicleOwner
+from .models import EntryLog, ExitLog, ParkingArea, RecordCorrection, Vehicle, VehicleOwner
 
 PASSWORD = "Parking-Slot-42"
 
@@ -228,8 +228,12 @@ class EntryExitTests(TestCase):
         self.assertEqual(entry.exit.recorded_by, self.guard)
         self.assertContains(response, "Exit recorded: ABC 1234 left Area B.")
         self.assertEqual(self.area_b.free_slots(), 1)
-        # Checking out again is not possible.
-        self.assertEqual(self.client.post(reverse("check_out", args=[entry.pk])).status_code, 404)
+        # Checking out again (double click) is refused with a message, and no second exit is saved.
+        response = self.client.post(reverse("check_out", args=[entry.pk]), follow=True)
+        self.assertContains(response, "ABC 1234 was already checked out.")
+        self.assertEqual(ExitLog.objects.filter(entry=entry).count(), 1)
+        # An entry ID that doesn't exist gives the 404 page, not a crash.
+        self.assertEqual(self.client.post(reverse("check_out", args=[999999])).status_code, 404)
 
     def test_check_in_and_out_are_post_only_and_guard_only(self):
         self.client.force_login(self.guard)

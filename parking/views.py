@@ -4,7 +4,8 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db import IntegrityError, transaction
-from django.db.models import Q
+from django.db.models import Prefetch, ProtectedError, Q
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -20,7 +21,10 @@ from .forms import (
     UndoEntryForm,
     VehicleForm,
     VehicleOwnerForm,
+    area_has_room,
 )
+
+MAX_SEARCH_LENGTH = 50  # longer search text is cut, so odd input can't slow the page down
 from .models import EntryLog, ExitLog, ParkingArea, RecordCorrection, Vehicle, VehicleOwner
 
 
@@ -85,7 +89,12 @@ def area_delete(request, pk):
 
     if request.method == "POST":
         name = area.name
-        area.delete()
+        try:
+            area.delete()
+        except ProtectedError:
+            # e.g. the correction log still mentions this area
+            messages.error(request, f"{name} is still referenced by parking or correction records, so it can't be removed.")
+            return redirect("area_list")
         messages.success(request, f"Parking area \"{name}\" removed.")
         return redirect("area_list")
     return render(request, "parking/area_confirm_delete.html", {"area": area})
@@ -181,7 +190,11 @@ def vehicle_delete(request, pk):
 
     if request.method == "POST":
         plate = vehicle.plate_number
-        vehicle.delete()
+        try:
+            vehicle.delete()
+        except ProtectedError:
+            messages.error(request, f"{plate} is still referenced by parking records, so it can't be removed.")
+            return redirect("my_vehicles")
         messages.success(request, f"Vehicle {plate} removed.")
         return redirect("my_vehicles")
     return render(request, "parking/vehicle_confirm_delete.html", {"vehicle": vehicle})
@@ -193,7 +206,7 @@ def vehicle_delete(request, pk):
 @role_required(Account.Role.ADMIN)
 def admin_vehicle_list(request):
     vehicles = Vehicle.objects.select_related("owner__account")
-    query = request.GET.get("q", "").strip()
+    query = request.GET.get("q", "").strip()[:MAX_SEARCH_LENGTH]
     if query:
         vehicles = vehicles.filter(
             Q(plate_number__icontains=query)
@@ -227,13 +240,19 @@ def find_vehicles(query):
     matches = Q(owner__id_number__iexact=query) | Q(plate_number__iexact=plate)
     if len(plate) >= 3:
         matches |= Q(plate_number__icontains=plate)
-    vehicles = Vehicle.objects.filter(matches).select_related("owner__account")[:20]
-    return [(vehicle, vehicle.active_entry()) for vehicle in vehicles]
+    # Load each vehicle's active entry in one extra query instead of one query per vehicle.
+    active = Prefetch(
+        "entries",
+        queryset=EntryLog.objects.filter(status=EntryLog.Status.ACTIVE).select_related("area"),
+        to_attr="active_entries",
+    )
+    vehicles = Vehicle.objects.filter(matches).select_related("owner__account").prefetch_related(active)[:20]
+    return [(vehicle, vehicle.active_entries[0] if vehicle.active_entries else None) for vehicle in vehicles]
 
 
 def gate_context(request):
     """Everything the guard's gate screen shows."""
-    query = request.GET.get("q", "").strip()
+    query = request.GET.get("q", "").strip()[:MAX_SEARCH_LENGTH]
     context = parking_summary()
     context.update({
         "query": query,
@@ -263,9 +282,14 @@ def check_in(request, vehicle_pk):
                 messages.error(request, error)
         return back_to_gate(query)
 
-    area = form.cleaned_data["area"]
     try:
         with transaction.atomic():
+            # Lock the area row until this save finishes, so two guards can't both
+            # take its last free slot at the same moment. Then check again.
+            area = ParkingArea.objects.select_for_update().get(pk=form.cleaned_data["area"].pk)
+            if not area_has_room(area):
+                messages.error(request, f"{area.name} just became full. Ask the owner to choose another area.")
+                return back_to_gate(query)
             EntryLog.objects.create(vehicle=vehicle, area=area, recorded_by=request.user)
     except IntegrityError:
         # The database allows only one active entry per vehicle.
@@ -280,8 +304,14 @@ def check_in(request, vehicle_pk):
 @require_POST
 def check_out(request, entry_pk):
     """Guard records a vehicle leaving. This closes its active entry."""
-    entry = get_object_or_404(EntryLog, pk=entry_pk, status=EntryLog.Status.ACTIVE)
     with transaction.atomic():
+        # Lock the entry so a double click (or two guards) can't record two exits.
+        entry = EntryLog.objects.select_for_update().filter(pk=entry_pk).first()
+        if entry is None:
+            raise Http404("No such entry.")
+        if not entry.is_active:
+            messages.error(request, f"{entry.vehicle.plate_number} was already checked out.")
+            return back_to_gate()
         ExitLog.objects.create(entry=entry, recorded_by=request.user)
         entry.status = EntryLog.Status.CLOSED
         entry.save(update_fields=["status"])
@@ -383,7 +413,7 @@ def admin_history(request):
     entries = EntryLog.objects.select_related(
         "vehicle__owner__account", "area", "recorded_by", "exit__recorded_by"
     )
-    query = request.GET.get("q", "").strip()
+    query = request.GET.get("q", "").strip()[:MAX_SEARCH_LENGTH]
     if query:
         entries = entries.filter(
             Q(vehicle__plate_number__icontains=query)

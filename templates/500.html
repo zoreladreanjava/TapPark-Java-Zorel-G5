@@ -1,0 +1,29 @@
+{% load static %}
+{% comment %}
+  Shown when the server hits an unexpected error. It does not extend base.html on
+  purpose: Django renders it without the usual context (no user, no messages), and
+  it must not depend on anything that could fail again.
+{% endcomment %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Something went wrong | TapPark</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  <link href="{% static 'css/style.css' %}" rel="stylesheet">
+</head>
+<body class="d-flex flex-column min-vh-100">
+  <nav class="navbar tp-header">
+    <div class="container"><a class="navbar-brand" href="/">P / TapPark</a></div>
+  </nav>
+  <main class="container text-center py-5 flex-grow-1">
+    <p class="display-1 fw-bold text-tappark mb-0">500</p>
+    <h1 class="h3 mb-3">Something went wrong</h1>
+    <p class="text-body-secondary mb-4">The server ran into a problem. Nothing was saved from your last action. Please try again in a moment.</p>
+    <a href="/" class="btn btn-tappark">Back to home</a>
+  </main>
+  <footer class="tp-footer py-3 text-center">TapPark &bull; Campus Parking Management System &bull; CIT-University</footer>
+</body>
+</html>
